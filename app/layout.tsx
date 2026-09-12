@@ -5,6 +5,7 @@ import "./globals.css";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { OfflineBadge } from "@/components/pwa/offline-badge";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
+import { EmergencyFab } from "@/components/emergency/emergency-fab";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -54,6 +55,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="safe-top safe-bottom flex min-h-full flex-col">
         <OfflineBadge />
         {children}
+        <EmergencyFab />
         <InstallPrompt />
         <ServiceWorkerRegister />
       </body>

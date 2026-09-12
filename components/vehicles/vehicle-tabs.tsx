@@ -5,7 +5,6 @@ const TABS = [
   { key: 'prep', label: 'Persiapan', href: '/prep' },
   { key: 'specs', label: 'Spesifikasi', href: '/specs' },
   { key: 'fuel', label: 'BBM', href: '/fuel' },
-  { key: 'emergency', label: 'Darurat', href: '/emergency' },
   { key: 'analytics', label: 'Analytics', href: '/analytics' },
   { key: 'settings', label: 'Pengaturan', href: '/settings' },
 ] as const
@@ -20,7 +19,6 @@ export function VehicleTabs({
     | 'prep'
     | 'specs'
     | 'fuel'
-    | 'emergency'
     | 'analytics'
     | 'settings'
 }) {

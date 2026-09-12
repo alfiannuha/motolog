@@ -25,9 +25,47 @@ export interface BatteryAssessment {
 
 // Recommended cold pressure (psi) per axle. Real bikes vary with load and tire
 // size, so this is a guide, not gospel; owners can eyeball ±few psi.
-const RECOMMENDED_PSI: Record<'motorcycle' | 'car', { front: number; rear: number }> = {
+export const RECOMMENDED_PSI: Record<
+  'motorcycle' | 'car',
+  { front: number; rear: number }
+> = {
   motorcycle: { front: 29, rear: 33 },
   car: { front: 32, rear: 32 },
+}
+
+export type PressureState = 'under' | 'normal' | 'over'
+
+// Pulls the "29 psi" (or "2.0 bar") recommendation out of the free-text tire
+// spec stored in vehicle_specs, e.g. "90/80-14 Tubeless (29 psi)".
+export function parsePsiFromSpec(spec: string | null | undefined): number | null {
+  if (!spec) return null
+  const psi = spec.match(/(\d+(?:\.\d+)?)\s*psi/i)
+  if (psi) return Number(psi[1])
+  const bar = spec.match(/(\d+(?:\.\d+)?)\s*bar/i)
+  if (bar) return Math.round(Number(bar[1]) * 14.5038)
+  return null
+}
+
+export function comparePressure(
+  psi: number,
+  recommended: number,
+  tolerance = 2,
+): PressureState {
+  const delta = psi - recommended
+  if (delta < -tolerance) return 'under'
+  if (delta > tolerance) return 'over'
+  return 'normal'
+}
+
+export type BatteryState = 'healthy' | 'warning' | 'weak' | 'unknown'
+
+// Roadside rule of thumb: >=12.4V resting is healthy, <12.0V means the battery
+// is on its way out. 12.0-12.39V is the grey zone worth watching.
+export function batteryState(voltage: number | null): BatteryState {
+  if (voltage == null) return 'unknown'
+  if (voltage >= 12.4) return 'healthy'
+  if (voltage < 12.0) return 'weak'
+  return 'warning'
 }
 
 const TREAD_SEVERITY: Record<string, EmergencyStatus> = {
@@ -213,6 +251,20 @@ function runSelfCheck() {
     'charging weak',
   )
   eq(assessBattery({ voltage: null, condition: null }).status, 'healthy', 'no voltage')
+
+  eq(parsePsiFromSpec('90/80-14 Tubeless (29 psi)'), 29, 'parse psi')
+  eq(parsePsiFromSpec('2.0 bar'), 29, 'parse bar')
+  eq(parsePsiFromSpec('100/80-14'), null, 'no psi')
+  eq(parsePsiFromSpec(null), null, 'null spec')
+  eq(comparePressure(29, 29), 'normal', 'pressure normal')
+  eq(comparePressure(26, 29), 'under', 'pressure under')
+  eq(comparePressure(32, 29), 'over', 'pressure over')
+  eq(comparePressure(27, 29), 'normal', 'pressure within tolerance')
+  eq(batteryState(12.6), 'healthy', '12.6 healthy')
+  eq(batteryState(12.4), 'healthy', '12.4 healthy boundary')
+  eq(batteryState(12.2), 'warning', '12.2 warning')
+  eq(batteryState(11.9), 'weak', '11.9 weak')
+  eq(batteryState(null), 'unknown', 'null voltage unknown')
 
   console.log('emergency self-check passed')
 }

@@ -7,7 +7,9 @@ import { createServerClient } from '@/lib/supabase/server'
 import type { ActionResult, BatteryLog, TireLog } from '@/types'
 
 const emptyToNull = (value: unknown) =>
-  typeof value === 'string' && value.trim() === '' ? null : value
+  value == null || (typeof value === 'string' && value.trim() === '')
+    ? null
+    : value
 
 const TREAD_CONDITIONS = ['good', 'worn', 'critical'] as const
 const BATTERY_CONDITIONS = ['healthy', 'weak', 'replace'] as const
@@ -72,7 +74,7 @@ export async function getBatteryLogs(vehicleId: string): Promise<BatteryLog[]> {
 
 function revalidateEmergency(vehicleId: string) {
   revalidatePath(`/vehicles/${vehicleId}`)
-  revalidatePath(`/vehicles/${vehicleId}/emergency`)
+  revalidatePath('/')
 }
 
 export async function createTireLog(

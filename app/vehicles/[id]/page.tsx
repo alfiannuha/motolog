@@ -3,13 +3,16 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { connection } from 'next/server'
 
+import { getBatteryLogs, getTireLogs } from '@/actions/emergency'
 import {
   getMaintenanceHistory,
   getVehicleDetailWithRules,
 } from '@/actions/maintenance'
 import { getVehicleForecast } from '@/actions/forecast'
+import { getVehicleSpec } from '@/actions/specs'
 import { LogServiceButton } from '@/components/logs/log-service-dialog'
 import { ServiceHistory } from '@/components/logs/service-history'
+import { HealthQuickCheck } from '@/components/vehicles/health-quick-check'
 import { LegalPanel } from '@/components/vehicles/legal-panel'
 import { ManageRulesDialog } from '@/components/vehicles/manage-rules-dialog'
 import { PartHealthSummary } from '@/components/vehicles/part-health-summary'
@@ -25,11 +28,15 @@ export default async function VehicleDetailPage({
   await connection()
   const { id } = await params
 
-  const [detail, history, forecast] = await Promise.all([
-    getVehicleDetailWithRules(id),
-    getMaintenanceHistory(id),
-    getVehicleForecast(id),
-  ])
+  const [detail, history, forecast, spec, tireLogs, batteryLogs] =
+    await Promise.all([
+      getVehicleDetailWithRules(id),
+      getMaintenanceHistory(id),
+      getVehicleForecast(id),
+      getVehicleSpec(id),
+      getTireLogs(id),
+      getBatteryLogs(id),
+    ])
 
   if (!detail) notFound()
 
@@ -60,6 +67,14 @@ export default async function VehicleDetailPage({
       <VehicleTabs vehicleId={vehicle.id} active="health" />
 
       <LegalPanel vehicle={vehicle} />
+
+      <HealthQuickCheck
+        vehicleId={vehicle.id}
+        vehicleType={vehicle.vehicle_type}
+        spec={spec}
+        tireLogs={tireLogs}
+        batteryLogs={batteryLogs}
+      />
 
       <section className="mb-8">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-500">
