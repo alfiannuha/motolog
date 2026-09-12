@@ -7,6 +7,7 @@ const TABS = [
   { key: 'fuel', label: 'BBM', href: '/fuel' },
   { key: 'emergency', label: 'Darurat', href: '/emergency' },
   { key: 'analytics', label: 'Analytics', href: '/analytics' },
+  { key: 'settings', label: 'Pengaturan', href: '/settings' },
 ] as const
 
 export function VehicleTabs({
@@ -14,7 +15,14 @@ export function VehicleTabs({
   active,
 }: {
   vehicleId: string
-  active: 'health' | 'prep' | 'specs' | 'fuel' | 'emergency' | 'analytics'
+  active:
+    | 'health'
+    | 'prep'
+    | 'specs'
+    | 'fuel'
+    | 'emergency'
+    | 'analytics'
+    | 'settings'
 }) {
   return (
     <nav className="mb-6 flex gap-1 overflow-x-auto rounded-xl border border-black/10 bg-white p-1 dark:border-white/10 dark:bg-zinc-900">
@@ -24,7 +32,7 @@ export function VehicleTabs({
           <Link
             key={tab.key}
             href={`/vehicles/${vehicleId}${tab.href}`}
-            className={`flex-1 rounded-lg px-3 py-2 text-center text-sm font-medium transition ${
+            className={`shrink-0 flex-1 rounded-lg px-3 py-2 text-center text-sm font-medium transition ${
               isActive
                 ? 'bg-black text-white dark:bg-white dark:text-black'
                 : 'text-zinc-500 hover:bg-black/5 dark:hover:bg-white/5'
