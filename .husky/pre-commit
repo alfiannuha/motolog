@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+
+echo "Running pre-commit quality checks..."
+
+# 1. Type-check entire project
+npx tsc --noEmit
+if [ $? -ne 0 ]; then
+  echo "Pre-commit check failed: TypeScript errors found. Fix before committing."
+  exit 1
+fi
+
+# 2. Run lint on staged files
+npx lint-staged
+if [ $? -ne 0 ]; then
+  echo "Pre-commit check failed: Lint errors found. Fix before committing."
+  exit 1
+fi
+
+echo "All pre-commit checks passed cleanly!"
