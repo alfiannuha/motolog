@@ -23,6 +23,10 @@ const QUICK_SERVICES = [
     label: 'Bengkel Motor / Mobil Terdekat',
     href: 'https://www.google.com/maps/search/?api=1&query=bengkel+terdekat',
   },
+  {
+    label: 'Toko Aki Terdekat',
+    href: 'https://www.google.com/maps/search/?api=1&query=toko+aki+terdekat',
+  },
 ]
 
 const BREAKDOWN_STEPS: { title: string; steps: string[] }[] = [
