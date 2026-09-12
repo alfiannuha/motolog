@@ -2,6 +2,7 @@ import { Bike, CheckCircle2 } from 'lucide-react'
 import { connection } from 'next/server'
 
 import { getVehicles } from '@/actions/vehicles'
+import { EmergencyFab } from '@/components/emergency/emergency-fab'
 import { NotificationToggle } from '@/components/pwa/notification-toggle'
 import { NewVehicleDialog } from '@/components/vehicles/new-vehicle-dialog'
 import { VehicleList } from '@/components/vehicles/vehicle-list'
@@ -15,7 +16,7 @@ export default async function DashboardPage({
   const [vehicles, { deleted }] = await Promise.all([getVehicles(), searchParams])
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
+    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 pb-28">
       <header className="mb-6 flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">MotoLog</h1>
@@ -43,6 +44,8 @@ export default async function DashboardPage({
       ) : (
         <VehicleList vehicles={vehicles} />
       )}
+
+      <EmergencyFab />
     </main>
   )
 }
