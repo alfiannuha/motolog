@@ -1,5 +1,6 @@
 import { Droplet, Fuel, Gauge, TrendingDown, Wallet } from 'lucide-react'
 
+import { Badge } from '@/components/ui/badge'
 import { buildFuelStats } from '@/lib/fuel'
 import { formatKm, formatRupiah } from '@/lib/utils'
 import type { FuelLog } from '@/types'
@@ -104,13 +105,13 @@ export function FuelPanel({ logs }: { logs: FuelLog[] }) {
                         month: 'short',
                         year: 'numeric',
                       })}
-                      <span className="rounded bg-black/5 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-500 dark:bg-white/10">
+                      <Badge className="rounded bg-black/5 px-1.5 text-[10px] font-medium tracking-wide text-zinc-500 uppercase dark:bg-white/10">
                         {log.fuel_type ?? 'BBM'}
-                      </span>
+                      </Badge>
                       {!log.is_full_tank ? (
-                        <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                        <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400">
                           Sebagian
-                        </span>
+                        </Badge>
                       ) : null}
                     </p>
                     <p className="mt-0.5 text-xs text-zinc-500">

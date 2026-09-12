@@ -1,17 +1,20 @@
 'use client'
 
-import {
-  Battery,
-  CircleAlert,
-  CircleCheck,
-  Loader2,
-  Plus,
-  TriangleAlert,
-  X,
-} from 'lucide-react'
-import { useRef, useState, useTransition } from 'react'
+import { Battery, CircleAlert, CircleCheck, Loader2, Plus, TriangleAlert } from 'lucide-react'
+import { useState, useTransition } from 'react'
 
 import { createBatteryLog, createTireLog } from '@/actions/emergency'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   assessTires,
   batteryState,
@@ -31,8 +34,7 @@ const BADGE = {
   warning:
     'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
   critical: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400',
-  unknown:
-    'bg-black/5 text-zinc-500 dark:bg-white/10 dark:text-zinc-400',
+  unknown: 'bg-black/5 text-zinc-500 dark:bg-white/10 dark:text-zinc-400',
 } as const
 
 function todayInputValue(): string {
@@ -67,12 +69,10 @@ function PressureCard({
           <p className="font-medium">{label}</p>
           <p className="text-xs text-zinc-500">Anjuran {recommended} psi</p>
         </div>
-        <span
-          className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${meta.badge}`}
-        >
+        <Badge className={`gap-1 ${meta.badge}`}>
           <meta.Icon className="size-3.5" />
           {meta.text}
-        </span>
+        </Badge>
       </div>
       <p className="mt-3 text-2xl font-bold">
         {psi == null ? '—' : `${psi} psi`}
@@ -97,7 +97,6 @@ export function HealthQuickCheck({
   const [open, setOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
-  const dialogRef = useRef<HTMLDialogElement>(null)
 
   const latestTire = tireLogs[0]
   const latestBattery = batteryLogs[0]
@@ -131,10 +130,10 @@ export function HealthQuickCheck({
           ? { label: 'Lemah', badge: BADGE.critical }
           : { label: 'Belum ada data', badge: BADGE.unknown }
 
-  function show() {
-    setError(null)
-    setOpen(true)
-    dialogRef.current?.showModal()
+  function changeOpen(next: boolean) {
+    if (pending) return
+    setOpen(next)
+    if (!next) setError(null)
   }
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -157,7 +156,6 @@ export function HealthQuickCheck({
         setError(batteryResult.error)
         return
       }
-      dialogRef.current?.close()
       setOpen(false)
     })
   }
@@ -168,14 +166,136 @@ export function HealthQuickCheck({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
           Ban &amp; Aki
         </h2>
-        <button
-          type="button"
-          onClick={show}
-          className="flex items-center gap-1.5 rounded-lg border border-black/10 px-3 py-1.5 text-xs font-medium hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/5"
-        >
-          <Plus className="size-3.5" />
-          Catat Tekanan Ban &amp; Aki
-        </button>
+        <Dialog open={open} onOpenChange={changeOpen}>
+          <DialogTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="border-black/10 dark:border-white/10"
+            >
+              <Plus className="size-3.5" />
+              Catat Tekanan Ban &amp; Aki
+            </Button>
+          </DialogTrigger>
+
+          <DialogContent
+            showCloseButton={false}
+            className="max-h-[92vh] overflow-y-auto sm:max-w-md"
+          >
+            <DialogHeader>
+              <DialogTitle>Catat Ban &amp; Aki</DialogTitle>
+            </DialogHeader>
+
+            <form onSubmit={submit} className="grid gap-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                Tekanan Angin Ban
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1">
+                  <Label htmlFor="tire-date" className="text-sm font-normal">
+                    Tanggal
+                  </Label>
+                  <input
+                    id="tire-date"
+                    name="logDate"
+                    type="date"
+                    required
+                    defaultValue={todayInputValue()}
+                    className={fieldClass}
+                  />
+                </div>
+                <div className="grid gap-1">
+                  <Label htmlFor="tire-tread" className="text-sm font-normal">
+                    Kondisi tapak
+                  </Label>
+                  <select
+                    id="tire-tread"
+                    name="treadCondition"
+                    defaultValue="good"
+                    className={fieldClass}
+                  >
+                    <option value="good">Baik</option>
+                    <option value="worn">Aus</option>
+                    <option value="critical">Kritis</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1">
+                  <Label htmlFor="tire-front" className="text-sm font-normal">
+                    Depan (psi)
+                  </Label>
+                  <Input
+                    id="tire-front"
+                    name="frontPsi"
+                    type="number"
+                    inputMode="decimal"
+                    step="0.1"
+                    min={1}
+                    required
+                    defaultValue={
+                      latestTire ? Number(latestTire.front_psi) : frontRecommended
+                    }
+                  />
+                </div>
+                <div className="grid gap-1">
+                  <Label htmlFor="tire-rear" className="text-sm font-normal">
+                    Belakang (psi)
+                  </Label>
+                  <Input
+                    id="tire-rear"
+                    name="rearPsi"
+                    type="number"
+                    inputMode="decimal"
+                    step="0.1"
+                    min={1}
+                    required
+                    defaultValue={
+                      latestTire ? Number(latestTire.rear_psi) : rearRecommended
+                    }
+                  />
+                </div>
+              </div>
+
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                Kesehatan Aki
+              </p>
+              <div className="grid gap-1">
+                <Label htmlFor="battery-voltage" className="text-sm font-normal">
+                  Tegangan (V, opsional)
+                </Label>
+                <Input
+                  id="battery-voltage"
+                  name="voltage"
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                  min={0}
+                  max={30}
+                  defaultValue={voltage ?? ''}
+                  placeholder="12.6 (mesin mati) / 14.1 (mesin hidup)"
+                />
+              </div>
+
+              {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => changeOpen(false)}
+                >
+                  Batal
+                </Button>
+                <Button type="submit" disabled={pending}>
+                  {pending ? <Loader2 className="size-4 animate-spin" /> : null}
+                  Simpan
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -203,11 +323,7 @@ export function HealthQuickCheck({
                   : 'Belum pernah dicek'}
               </p>
             </div>
-            <span
-              className={`rounded-full px-2 py-0.5 text-xs font-medium ${batteryMeta.badge}`}
-            >
-              {batteryMeta.label}
-            </span>
+            <Badge className={batteryMeta.badge}>{batteryMeta.label}</Badge>
           </div>
           <p className="mt-3 text-2xl font-bold">
             {voltage == null ? '—' : `${voltage} V`}
@@ -231,122 +347,6 @@ export function HealthQuickCheck({
           ))}
         </ul>
       ) : null}
-
-      <dialog
-        ref={dialogRef}
-        onClose={() => setOpen(false)}
-        className="m-auto max-h-[92vh] w-[min(94vw,480px)] overflow-y-auto rounded-2xl border border-black/10 bg-white p-5 backdrop:bg-black/40 dark:border-white/10 dark:bg-zinc-900"
-      >
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Catat Ban &amp; Aki</h2>
-          <button
-            type="button"
-            onClick={() => dialogRef.current?.close()}
-            aria-label="Tutup"
-            className="rounded-lg p-1.5 text-zinc-500 hover:bg-black/5 dark:hover:bg-white/5"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
-
-        {open ? (
-          <form onSubmit={submit} className="mt-4 grid gap-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              Tekanan Angin Ban
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="grid gap-1 text-sm">
-                Tanggal
-                <input
-                  name="logDate"
-                  type="date"
-                  required
-                  defaultValue={todayInputValue()}
-                  className={fieldClass}
-                />
-              </label>
-              <label className="grid gap-1 text-sm">
-                Kondisi tapak
-                <select
-                  name="treadCondition"
-                  defaultValue="good"
-                  className={fieldClass}
-                >
-                  <option value="good">Baik</option>
-                  <option value="worn">Aus</option>
-                  <option value="critical">Kritis</option>
-                </select>
-              </label>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="grid gap-1 text-sm">
-                Depan (psi)
-                <input
-                  name="frontPsi"
-                  type="number"
-                  inputMode="decimal"
-                  step="0.1"
-                  min={1}
-                  required
-                  defaultValue={latestTire ? Number(latestTire.front_psi) : frontRecommended}
-                  className={fieldClass}
-                />
-              </label>
-              <label className="grid gap-1 text-sm">
-                Belakang (psi)
-                <input
-                  name="rearPsi"
-                  type="number"
-                  inputMode="decimal"
-                  step="0.1"
-                  min={1}
-                  required
-                  defaultValue={latestTire ? Number(latestTire.rear_psi) : rearRecommended}
-                  className={fieldClass}
-                />
-              </label>
-            </div>
-
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              Kesehatan Aki
-            </p>
-            <label className="grid gap-1 text-sm">
-              Tegangan (V, opsional)
-              <input
-                name="voltage"
-                type="number"
-                inputMode="decimal"
-                step="0.01"
-                min={0}
-                max={30}
-                defaultValue={voltage ?? ''}
-                placeholder="12.6 (mesin mati) / 14.1 (mesin hidup)"
-                className={fieldClass}
-              />
-            </label>
-
-            {error ? <p className="text-sm text-red-600">{error}</p> : null}
-
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => dialogRef.current?.close()}
-                className="rounded-lg px-4 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/5"
-              >
-                Batal
-              </button>
-              <button
-                type="submit"
-                disabled={pending}
-                className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
-              >
-                {pending ? <Loader2 className="size-4 animate-spin" /> : null}
-                Simpan
-              </button>
-            </div>
-          </form>
-        ) : null}
-      </dialog>
     </section>
   )
 }

@@ -3,6 +3,7 @@
 import { ChevronDown, FileText, Image as ImageIcon, Wrench } from 'lucide-react'
 import { useRef, useState } from 'react'
 
+import { Badge } from '@/components/ui/badge'
 import { formatDate, formatKm, formatRupiah } from '@/lib/utils'
 import type { MaintenanceLogWithItems } from '@/types'
 
@@ -52,9 +53,9 @@ export function ServiceHistory({ logs }: { logs: MaintenanceLogWithItems[] }) {
                       className="flex items-center justify-between gap-3 text-sm"
                     >
                       <span className="flex min-w-0 items-center gap-2">
-                        <span className="rounded bg-black/5 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-500 dark:bg-white/10">
+                        <Badge className="rounded bg-black/5 px-1.5 text-[10px] font-medium tracking-wide text-zinc-500 uppercase dark:bg-white/10">
                           {item.item_type === 'part' ? 'Part' : 'Jasa'}
-                        </span>
+                        </Badge>
                         <span className="truncate">{item.item_name}</span>
                       </span>
                       <span className="shrink-0 text-zinc-600 dark:text-zinc-300">

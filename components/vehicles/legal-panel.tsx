@@ -4,6 +4,7 @@ import { CalendarClock, FileWarning, Loader2, Pencil } from 'lucide-react'
 import { useRef, useState, useTransition } from 'react'
 
 import { updateVehicleLegal } from '@/actions/vehicles'
+import { Badge } from '@/components/ui/badge'
 import { getLegalStatus } from '@/lib/prediction'
 import type { HealthStatus, Vehicle } from '@/types'
 
@@ -61,11 +62,9 @@ function LegalCard({
           {label}
         </div>
         {status ? (
-          <span
-            className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_META[status.status].badge}`}
-          >
+          <Badge className={STATUS_META[status.status].badge}>
             {STATUS_META[status.status].label}
-          </span>
+          </Badge>
         ) : null}
       </div>
 

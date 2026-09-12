@@ -1,6 +1,7 @@
 import { Gauge } from 'lucide-react'
 import type { ReactNode } from 'react'
 
+import { Badge } from '@/components/ui/badge'
 import { formatKm } from '@/lib/utils'
 import { vehicleKind } from '@/lib/vehicle-kind'
 import type { Vehicle } from '@/types'
@@ -22,9 +23,9 @@ export function VehicleHeader({
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl font-bold">{vehicle.name}</h1>
-            <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-600 dark:bg-white/10 dark:text-zinc-300">
+            <Badge className="rounded-full bg-black/5 px-2 text-[10px] font-medium tracking-wide text-zinc-600 uppercase dark:bg-white/10 dark:text-zinc-300">
               {kind.label}
-            </span>
+            </Badge>
           </div>
           <p className="text-sm text-zinc-500">
             {vehicle.license_plate}

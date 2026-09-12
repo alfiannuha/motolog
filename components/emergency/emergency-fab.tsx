@@ -1,18 +1,18 @@
 'use client'
 
 import { LifeBuoy } from 'lucide-react'
-import { useRef } from 'react'
+import { useState } from 'react'
 
 import { EmergencySosDialog } from '@/components/emergency/emergency-sos-dialog'
 
 export function EmergencyFab() {
-  const dialogRef = useRef<HTMLDialogElement>(null)
+  const [open, setOpen] = useState(false)
 
   return (
     <>
       <button
         type="button"
-        onClick={() => dialogRef.current?.showModal()}
+        onClick={() => setOpen(true)}
         aria-label="Buka toolkit darurat"
         className="fixed right-6 bottom-6 z-50 flex size-14 items-center justify-center rounded-full bg-red-600 text-white shadow-lg shadow-red-600/40 transition hover:bg-red-700"
       >
@@ -23,7 +23,7 @@ export function EmergencyFab() {
         </span>
       </button>
 
-      <EmergencySosDialog dialogRef={dialogRef} />
+      <EmergencySosDialog open={open} onOpenChange={setOpen} />
     </>
   )
 }

@@ -8,6 +8,7 @@ import {
   deleteComplaint,
   setComplaintResolved,
 } from '@/actions/complaints'
+import { Badge } from '@/components/ui/badge'
 import { categoryLabel, severityMeta, SYMPTOM_CATEGORIES } from '@/lib/checklist'
 import type { VehicleComplaint } from '@/types'
 
@@ -183,18 +184,16 @@ function ComplaintCard({
             {complaint.title}
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            <span className="rounded bg-black/5 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-500 dark:bg-white/10">
+            <Badge className="rounded bg-black/5 px-1.5 text-[10px] font-medium tracking-wide text-zinc-500 uppercase dark:bg-white/10">
               {categoryLabel(complaint.symptom_category)}
-            </span>
+            </Badge>
             {!resolved ? (
-              <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${severity.badge}`}>
-                {severity.label}
-              </span>
+              <Badge className={`${severity.badge}`}>{severity.label}</Badge>
             ) : null}
             {resolved ? (
-              <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-500/15 dark:text-green-400">
+              <Badge className="bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">
                 Selesai
-              </span>
+              </Badge>
             ) : null}
           </div>
         </div>

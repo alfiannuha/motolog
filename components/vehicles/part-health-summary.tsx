@@ -1,5 +1,6 @@
 import { CalendarClock, CircleAlert, CircleCheck, TrendingDown, TriangleAlert } from 'lucide-react'
 
+import { Badge } from '@/components/ui/badge'
 import { formatKm } from '@/lib/utils'
 import type { PartForecast } from '@/lib/prediction'
 import type { HealthStatus, PartStatus } from '@/types'
@@ -111,12 +112,10 @@ export function PartHealthSummary({
                 <p className="font-medium">{part.partName}</p>
                 <p className="text-xs text-zinc-500">{intervalLabel(part)}</p>
               </div>
-              <span
-                className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${meta.badge}`}
-              >
+              <Badge className={`gap-1 ${meta.badge}`}>
                 <Icon className="size-3.5" />
                 {meta.label}
-              </span>
+              </Badge>
             </div>
 
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/10 dark:bg-white/10">

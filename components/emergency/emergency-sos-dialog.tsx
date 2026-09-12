@@ -1,6 +1,14 @@
 'use client'
 
-import { Phone, X } from 'lucide-react'
+import { Phone } from 'lucide-react'
+
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
 const EMERGENCY_NUMBERS = [
   { label: 'Polisi', number: '110', hint: 'Kecelakaan / kejahatan' },
@@ -80,113 +88,114 @@ function SectionTitle({ index, title }: { index: number; title: string }) {
 }
 
 export function EmergencySosDialog({
-  dialogRef,
+  open,
+  onOpenChange,
 }: {
-  dialogRef: React.RefObject<HTMLDialogElement | null>
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }) {
-  function close() {
-    dialogRef.current?.close()
-  }
-
   return (
-    <dialog
-      ref={dialogRef}
-      className="m-0 h-dvh max-h-none w-screen max-w-none bg-zinc-950 p-0 text-zinc-100 backdrop:bg-black/70"
-    >
-      <div className="safe-top safe-bottom mx-auto flex h-full w-full max-w-2xl flex-col">
-        <header className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <span className="relative flex size-3">
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-red-500 opacity-75" />
-              <span className="relative inline-flex size-3 rounded-full bg-red-600" />
-            </span>
-            <h2 className="text-lg font-black tracking-wide">SOS DARURAT</h2>
-          </div>
-          <button
-            type="button"
-            onClick={close}
-            className="flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-1.5 text-sm font-medium hover:bg-white/10"
-          >
-            <X className="size-4" />
-            Tutup
-          </button>
-        </header>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        showCloseButton={false}
+        className="flex h-dvh max-h-none w-screen max-w-none flex-col gap-0 rounded-none bg-zinc-950 p-0 text-zinc-100 ring-0 sm:max-w-none"
+      >
+        <div className="safe-top safe-bottom mx-auto flex h-full w-full max-w-2xl flex-col">
+          <header className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+            <DialogTitle className="flex items-center gap-2 text-lg font-black tracking-wide">
+              <span className="relative flex size-3">
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-red-500 opacity-75" />
+                <span className="relative inline-flex size-3 rounded-full bg-red-600" />
+              </span>
+              SOS DARURAT
+            </DialogTitle>
+            <DialogClose asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-white/15 bg-transparent text-zinc-100 hover:bg-white/10 hover:text-zinc-100"
+              >
+                Tutup
+              </Button>
+            </DialogClose>
+          </header>
 
-        <div className="grid flex-1 gap-6 overflow-y-auto px-4 py-5">
-          <section>
-            <SectionTitle index={1} title="Nomor Darurat" />
-            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-              {EMERGENCY_NUMBERS.map((item) => (
-                <li key={item.label}>
-                  <a
-                    href={`tel:${item.number}`}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2.5 hover:bg-red-500/20"
-                  >
-                    <span>
-                      <span className="block font-semibold">{item.label}</span>
-                      <span className="text-xs text-zinc-400">{item.hint}</span>
-                    </span>
-                    <span className="flex shrink-0 items-center gap-1.5 font-bold text-red-400">
-                      <Phone className="size-4" />
-                      {item.number}
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section>
-            <SectionTitle index={2} title="Bantuan Cepat" />
-            <ul className="mt-3 grid gap-2">
-              {QUICK_SERVICES.map((item) => (
-                <li key={item.href}>
-                  <a
-                    href={item.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-between gap-3 rounded-xl border border-white/15 bg-white/5 px-3 py-3 font-medium hover:bg-white/10"
-                  >
-                    {item.label}
-                    <span className="shrink-0 text-xs text-zinc-400">Maps →</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section>
-            <SectionTitle index={3} title="Langkah Saat Mogok" />
-            <div className="mt-3 grid gap-2">
-              {BREAKDOWN_STEPS.map((guide) => (
-                <details
-                  key={guide.title}
-                  className="group rounded-xl border border-white/15 bg-white/5 px-3 py-2.5"
-                >
-                  <summary className="cursor-pointer list-none font-medium marker:content-none">
-                    <span className="flex items-center justify-between gap-3">
-                      {guide.title}
-                      <span className="text-xs text-zinc-400 group-open:hidden">
-                        Buka
+          <div className="grid flex-1 gap-6 overflow-y-auto px-4 py-5">
+            <section>
+              <SectionTitle index={1} title="Nomor Darurat" />
+              <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+                {EMERGENCY_NUMBERS.map((item) => (
+                  <li key={item.label}>
+                    <a
+                      href={`tel:${item.number}`}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2.5 hover:bg-red-500/20"
+                    >
+                      <span>
+                        <span className="block font-semibold">{item.label}</span>
+                        <span className="text-xs text-zinc-400">{item.hint}</span>
                       </span>
-                    </span>
-                  </summary>
-                  <ol className="mt-2 grid gap-1.5 border-t border-white/10 pt-2">
-                    {guide.steps.map((step, index) => (
-                      <li key={step} className="flex gap-2 text-sm text-zinc-300">
-                        <span className="font-semibold text-amber-400">
-                          {index + 1}.
+                      <span className="flex shrink-0 items-center gap-1.5 font-bold text-red-400">
+                        <Phone className="size-4" />
+                        {item.number}
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section>
+              <SectionTitle index={2} title="Bantuan Cepat" />
+              <ul className="mt-3 grid gap-2">
+                {QUICK_SERVICES.map((item) => (
+                  <li key={item.href}>
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between gap-3 rounded-xl border border-white/15 bg-white/5 px-3 py-3 font-medium hover:bg-white/10"
+                    >
+                      {item.label}
+                      <span className="shrink-0 text-xs text-zinc-400">Maps →</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section>
+              <SectionTitle index={3} title="Langkah Saat Mogok" />
+              <div className="mt-3 grid gap-2">
+                {BREAKDOWN_STEPS.map((guide) => (
+                  <details
+                    key={guide.title}
+                    className="group rounded-xl border border-white/15 bg-white/5 px-3 py-2.5"
+                  >
+                    <summary className="cursor-pointer list-none font-medium marker:content-none">
+                      <span className="flex items-center justify-between gap-3">
+                        {guide.title}
+                        <span className="text-xs text-zinc-400 group-open:hidden">
+                          Buka
                         </span>
-                        {step}
-                      </li>
-                    ))}
-                  </ol>
-                </details>
-              ))}
-            </div>
-          </section>
+                      </span>
+                    </summary>
+                    <ol className="mt-2 grid gap-1.5 border-t border-white/10 pt-2">
+                      {guide.steps.map((step, index) => (
+                        <li key={step} className="flex gap-2 text-sm text-zinc-300">
+                          <span className="font-semibold text-amber-400">
+                            {index + 1}.
+                          </span>
+                          {step}
+                        </li>
+                      ))}
+                    </ol>
+                  </details>
+                ))}
+              </div>
+            </section>
+          </div>
         </div>
-      </div>
-    </dialog>
+      </DialogContent>
+    </Dialog>
   )
 }

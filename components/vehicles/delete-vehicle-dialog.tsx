@@ -1,12 +1,23 @@
 'use client'
 
 import { AlertTriangle, Loader2, Trash2 } from 'lucide-react'
-import { useRef, useState, useTransition } from 'react'
+import { useState, useTransition } from 'react'
 
 import { deleteVehicle } from '@/actions/vehicles'
-
-const fieldClass =
-  'w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm outline-none focus:border-black dark:border-white/15 dark:focus:border-white'
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 export function DeleteVehicleDialog({
   vehicleId,
@@ -17,24 +28,25 @@ export function DeleteVehicleDialog({
   vehicleName: string
   licensePlate: string
 }) {
+  const [open, setOpen] = useState(false)
   const [confirmText, setConfirmText] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
-  const dialogRef = useRef<HTMLDialogElement>(null)
 
   const unlocked =
     confirmText.trim().toLowerCase() === licensePlate.trim().toLowerCase()
 
-  function open() {
-    setConfirmText('')
-    setError(null)
-    dialogRef.current?.showModal()
+  function changeOpen(next: boolean) {
+    if (pending) return
+    setOpen(next)
+    if (!next) {
+      setConfirmText('')
+      setError(null)
+    }
   }
 
-  function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  function remove() {
     if (!unlocked) return
-
     startTransition(async () => {
       const result = await deleteVehicle(vehicleId)
       if (result && !result.ok) setError(result.error)
@@ -52,56 +64,56 @@ export function DeleteVehicleDialog({
         catatan ban &amp; aki, serta foto nota akan ikut terhapus dan tidak dapat
         dikembalikan.
       </p>
-      <button
-        type="button"
-        onClick={open}
-        className="mt-4 flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-      >
-        <Trash2 className="size-4" />
-        Hapus Kendaraan
-      </button>
 
-      <dialog
-        ref={dialogRef}
-        className="m-auto w-[min(94vw,460px)] rounded-2xl border border-black/10 bg-white p-5 backdrop:bg-black/40 dark:border-white/10 dark:bg-zinc-900"
-      >
-        <h2 className="flex items-center gap-2 text-lg font-semibold text-red-700 dark:text-red-400">
-          <AlertTriangle className="size-5" />
-          Hapus {vehicleName}?
-        </h2>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
-          Tindakan ini <strong>permanen</strong>. Semua data servis, BBM, ban,
-          aki, dan foto nota milik kendaraan ini akan dihapus.
-        </p>
+      <AlertDialog open={open} onOpenChange={changeOpen}>
+        <AlertDialogTrigger asChild>
+          <Button
+            type="button"
+            className="mt-4 bg-red-600 text-white hover:bg-red-700"
+          >
+            <Trash2 className="size-4" />
+            Hapus Kendaraan
+          </Button>
+        </AlertDialogTrigger>
 
-        <form onSubmit={submit} className="mt-4 grid gap-3">
-          <label className="grid gap-1 text-sm">
-            Ketik <strong>{licensePlate}</strong> untuk mengonfirmasi
-            <input
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogMedia className="bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400">
+              <AlertTriangle />
+            </AlertDialogMedia>
+            <AlertDialogTitle className="text-red-700 dark:text-red-400">
+              Hapus {vehicleName}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Tindakan ini <strong>permanen</strong>. Semua data servis, BBM,
+              ban, aki, dan foto nota milik kendaraan ini akan dihapus.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="grid gap-2">
+            <Label htmlFor="delete-confirm" className="text-sm font-normal">
+              Ketik <strong>{licensePlate}</strong> untuk mengonfirmasi
+            </Label>
+            <Input
+              id="delete-confirm"
               type="text"
               value={confirmText}
               onChange={(event) => setConfirmText(event.target.value)}
               placeholder={licensePlate}
               autoComplete="off"
-              className={fieldClass}
             />
-          </label>
+          </div>
 
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-          <div className="mt-1 flex justify-end gap-2">
-            <button
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={pending}>Batal</AlertDialogCancel>
+            <Button
               type="button"
-              onClick={() => dialogRef.current?.close()}
-              disabled={pending}
-              className="rounded-lg px-4 py-2 text-sm hover:bg-black/5 disabled:opacity-50 dark:hover:bg-white/5"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
+              variant="destructive"
+              onClick={remove}
               disabled={!unlocked || pending}
-              className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="bg-red-600 text-white hover:bg-red-700"
             >
               {pending ? (
                 <Loader2 className="size-4 animate-spin" />
@@ -109,10 +121,10 @@ export function DeleteVehicleDialog({
                 <Trash2 className="size-4" />
               )}
               Hapus Permanen
-            </button>
-          </div>
-        </form>
-      </dialog>
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   )
 }

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRef, useState, useTransition } from 'react'
 
 import { updateOdometer } from '@/actions/vehicles'
+import { Badge } from '@/components/ui/badge'
 import { vehicleKind } from '@/lib/vehicle-kind'
 import type { VehicleWithLastLog } from '@/types'
 
@@ -58,9 +59,9 @@ export function VehicleList({ vehicles }: { vehicles: VehicleWithLastLog[] }) {
                 <div>
                   <p className="flex flex-wrap items-center gap-2 font-medium">
                     {vehicle.name}
-                    <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-600 dark:bg-white/10 dark:text-zinc-300">
+                    <Badge className="rounded-full bg-black/5 px-2 text-[10px] font-medium tracking-wide text-zinc-600 uppercase dark:bg-white/10 dark:text-zinc-300">
                       {kind.label}
-                    </span>
+                    </Badge>
                   </p>
                   <p className="text-xs text-zinc-500">{vehicle.license_plate}</p>
                   <p className="mt-1 flex items-center gap-1 text-sm font-semibold">

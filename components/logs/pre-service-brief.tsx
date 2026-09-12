@@ -5,6 +5,7 @@ import { useState } from 'react'
 
 import { buildMechanicBriefText } from '@/lib/checklist'
 import type { PreServiceBrief } from '@/lib/checklist'
+import { Badge } from '@/components/ui/badge'
 import { formatKm } from '@/lib/utils'
 
 const STATUS_BADGE: Record<string, string> = {
@@ -102,13 +103,13 @@ export function PreServiceBriefPanel({
                   <span className="text-xs text-zinc-500">
                     {remaining(item.remainingKm, item.remainingDays)}
                   </span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
+                  <Badge
+                    className={`text-[10px] font-semibold uppercase ${
                       STATUS_BADGE[item.status] ?? ''
                     }`}
                   >
                     {item.status === 'critical' ? 'Overdue' : 'Segera'}
-                  </span>
+                  </Badge>
                 </span>
               </li>
             ))}
