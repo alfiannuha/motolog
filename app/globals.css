@@ -65,6 +65,18 @@
   padding-right: env(safe-area-inset-right);
 }
 
+/* Keep the floating SOS button clear of the PWA install banner and hide it
+   while any modal/dialog is open. */
+body:has(.pwa-install-banner) .emergency-fab {
+  bottom: calc(env(safe-area-inset-bottom) + 7rem);
+}
+
+body:has(dialog[open]) .emergency-fab,
+body:has([data-slot='dialog-content'][data-state='open']) .emergency-fab,
+body:has([data-slot='alert-dialog-content'][data-state='open']) .emergency-fab {
+  display: none;
+}
+
 @media (pointer: coarse) {
   button,
   a,

@@ -89,7 +89,7 @@ export function InstallPrompt() {
   if (!platform) return null
 
   return (
-    <div className="safe-bottom pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-3 pb-3">
+    <div className="pwa-install-banner safe-bottom pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-3 pb-3">
       <div className="pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-2xl border border-white/10 bg-zinc-900 p-3 text-zinc-100 shadow-xl">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/10">
           {platform === 'ios' ? <Share className="size-5" /> : <Download className="size-5" />}

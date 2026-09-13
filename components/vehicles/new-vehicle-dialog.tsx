@@ -11,6 +11,7 @@ const fieldClass =
 export function NewVehicleDialog() {
   const [error, setError] = useState<string | null>(null)
   const [vehicleType, setVehicleType] = useState('motorcycle')
+  const [transmissionType, setTransmissionType] = useState('matic')
   const [pending, startTransition] = useTransition()
   const dialogRef = useRef<HTMLDialogElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
@@ -23,6 +24,7 @@ export function NewVehicleDialog() {
       if (result.ok) {
         formRef.current?.reset()
         setVehicleType('motorcycle')
+        setTransmissionType('matic')
         setError(null)
         dialogRef.current?.close()
       } else {
@@ -101,32 +103,33 @@ export function NewVehicleDialog() {
             </label>
           </div>
 
-          {vehicleType === 'motorcycle' ? (
-            <fieldset className="grid gap-2">
-              <legend className="text-sm">Transmisi</legend>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-black/15 px-3 py-2 text-sm has-[:checked]:border-black has-[:checked]:bg-black/5 dark:border-white/15 dark:has-[:checked]:border-white dark:has-[:checked]:bg-white/10">
-                  <input
-                    type="radio"
-                    name="transmission_type"
-                    value="matic"
-                    defaultChecked
-                    className="size-4"
-                  />
-                  Matic (CVT)
-                </label>
-                <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-black/15 px-3 py-2 text-sm has-[:checked]:border-black has-[:checked]:bg-black/5 dark:border-white/15 dark:has-[:checked]:border-white dark:has-[:checked]:bg-white/10">
-                  <input
-                    type="radio"
-                    name="transmission_type"
-                    value="manual"
-                    className="size-4"
-                  />
-                  Bebek / Manual (Gigi)
-                </label>
-              </div>
-            </fieldset>
-          ) : null}
+          <fieldset className="grid gap-2">
+            <legend className="text-sm">Transmisi</legend>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-black/15 px-3 py-2 text-sm has-[:checked]:border-black has-[:checked]:bg-black/5 dark:border-white/15 dark:has-[:checked]:border-white dark:has-[:checked]:bg-white/10">
+                <input
+                  type="radio"
+                  name="transmission_type"
+                  value="matic"
+                  checked={transmissionType === 'matic'}
+                  onChange={() => setTransmissionType('matic')}
+                  className="size-4"
+                />
+                {vehicleType === 'motorcycle' ? 'Matic (CVT)' : 'Matic'}
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-black/15 px-3 py-2 text-sm has-[:checked]:border-black has-[:checked]:bg-black/5 dark:border-white/15 dark:has-[:checked]:border-white dark:has-[:checked]:bg-white/10">
+                <input
+                  type="radio"
+                  name="transmission_type"
+                  value="manual"
+                  checked={transmissionType === 'manual'}
+                  onChange={() => setTransmissionType('manual')}
+                  className="size-4"
+                />
+                {vehicleType === 'motorcycle' ? 'Bebek / Manual (Gigi)' : 'Manual'}
+              </label>
+            </div>
+          </fieldset>
 
           <label className="grid gap-1 text-sm">
             Odometer awal (km)

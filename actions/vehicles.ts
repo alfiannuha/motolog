@@ -21,8 +21,8 @@ const createVehicleSchema = z.object({
     message: 'Jenis kendaraan harus motorcycle atau car',
   }),
   transmission_type: z.preprocess(
-    (value) => (value === '' || value == null ? null : value),
-    z.enum(['matic', 'manual']).nullable(),
+    (value) => (value === '' || value == null ? undefined : value),
+    z.enum(['matic', 'manual']).default('matic'),
   ),
   manufacture_year: z.preprocess(
     (value) => (value === '' || value == null ? null : value),
