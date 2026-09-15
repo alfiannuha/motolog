@@ -52,7 +52,7 @@ export function LogFuelButton({
   }
 
   function recalc(nextLiters: string, nextPrice: string) {
-    const amount = Number(nextLiters) * Number(nextPrice)
+    const amount = Number(nextLiters.replace(',', '.')) * Number(nextPrice.replace(',', '.'))
     if (amount > 0) setTotal(String(Math.round(amount)))
   }
 
@@ -118,9 +118,8 @@ export function LogFuelButton({
               Jumlah (liter)
               <input
                 name="liters"
-                type="number"
+                type="text"
                 inputMode="decimal"
-                step="0.01"
                 min={0}
                 required
                 value={liters}
@@ -128,7 +127,7 @@ export function LogFuelButton({
                   setLiters(event.target.value)
                   recalc(event.target.value, price)
                 }}
-                placeholder="3.5"
+                placeholder="3,5"
                 className={fieldClass}
               />
             </label>

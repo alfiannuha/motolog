@@ -12,14 +12,20 @@ const toBool = (value: unknown) =>
 const emptyToNull = (value: unknown) =>
   typeof value === 'string' && value.trim() === '' ? null : value
 
+const commaToDot = (value: unknown) =>
+  typeof value === 'string' ? value.replace(',', '.') : value
+
 const fuelLogSchema = z.object({
   logDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Tanggal tidak valid'),
   odometer: z.coerce.number().int().min(0, 'Odometer tidak boleh negatif'),
-  liters: z.coerce.number().positive('Jumlah liter harus lebih dari 0'),
-  pricePerLiter: z.coerce.number().min(0, 'Harga tidak boleh negatif'),
-  totalCost: z.coerce.number().min(0, 'Total tidak boleh negatif'),
+  liters: z.preprocess(commaToDot, z.coerce.number().positive('Jumlah liter harus lebih dari 0')),
+  pricePerLiter: z.preprocess(
+    commaToDot,
+    z.coerce.number().min(0, 'Harga tidak boleh negatif'),
+  ),
+  totalCost: z.preprocess(commaToDot, z.coerce.number().min(0, 'Total tidak boleh negatif')),
   fuelType: z.preprocess(
     emptyToNull,
     z.string().trim().max(50, 'Jenis BBM terlalu panjang').nullable(),
