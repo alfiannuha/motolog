@@ -1,9 +1,11 @@
 'use client'
 
-import { Fuel, Loader2 } from 'lucide-react'
+import { Fuel, Loader2, MapPin } from 'lucide-react'
 import { useRef, useState, useTransition } from 'react'
 
 import { createFuelLog } from '@/actions/fuel'
+import { fetchFuelPrices } from '@/actions/fuel-price'
+import type { FuelPrice } from '@/lib/fuel-price'
 
 const fieldClass =
   'w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm outline-none focus:border-black dark:border-white/15 dark:focus:border-white'
@@ -12,25 +14,40 @@ const FUEL_TYPES = [
   'Pertalite',
   'Pertamax',
   'Pertamax Turbo',
+  'Pertamina Dex',
+  'Dexlite',
+  'Bio Solar',
+  'Pertamax Green 95',
   'Shell Super',
   'Shell V-Power',
   'Revvo 89',
   'Revvo 92',
-  'Bio Solar',
-  'Pertamina Dex',
 ]
 
-// Estimasi harga nasional (Rp/liter). Edit bebas di form — tidak ada API resmi.
+// Pertamina product code per fuel type, for MyPertamina live prices.
+const PRODUCT_CODE: Record<string, string> = {
+  Pertalite: 'PERTALITE',
+  Pertamax: 'PERTAMAX',
+  'Pertamax Turbo': 'PERTAMAX TURBO',
+  'Pertamina Dex': 'PERTAMINA DEX',
+  Dexlite: 'DEXLITE',
+  'Bio Solar': 'PERTAMINA BIOSOLAR SUBSIDI',
+  'Pertamax Green 95': 'PERTAMAX GREEN 95',
+}
+
+// Fallback when location is denied: national estimates (Rp/liter).
 const FUEL_PRICES: Record<string, number> = {
   Pertalite: 10_000,
   Pertamax: 12_500,
   'Pertamax Turbo': 14_000,
+  'Pertamina Dex': 13_500,
+  Dexlite: 12_000,
+  'Bio Solar': 6_800,
+  'Pertamax Green 95': 12_000,
   'Shell Super': 13_000,
   'Shell V-Power': 14_500,
   'Revvo 89': 11_500,
   'Revvo 92': 13_000,
-  'Bio Solar': 6_800,
-  'Pertamina Dex': 13_500,
 }
 
 function todayInputValue(): string {
@@ -49,6 +66,11 @@ export function LogFuelButton({
   const [price, setPrice] = useState('')
   const [total, setTotal] = useState('')
   const [fuelType, setFuelType] = useState('Pertalite')
+  const [livePrices, setLivePrices] = useState<FuelPrice[]>([])
+  const [province, setProvince] = useState<string | null>(null)
+  const [geoState, setGeoState] = useState<'idle' | 'loading' | 'ready' | 'denied'>(
+    'idle',
+  )
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const dialogRef = useRef<HTMLDialogElement>(null)
@@ -59,6 +81,12 @@ export function LogFuelButton({
     return Number.isFinite(amount) && amount > 0 ? amount.toFixed(2) : ''
   })()
 
+  function priceFor(type: string, prices: FuelPrice[] = livePrices): number | null {
+    const code = PRODUCT_CODE[type]
+    const live = code ? prices.find((item) => item.product === code) : undefined
+    return live?.price ?? FUEL_PRICES[type] ?? null
+  }
+
   function open() {
     setPrice(String(FUEL_PRICES.Pertalite))
     setTotal('')
@@ -66,11 +94,38 @@ export function LogFuelButton({
     setError(null)
     formRef.current?.reset()
     dialogRef.current?.showModal()
+    requestLocation()
+  }
+
+  function requestLocation() {
+    if (!('geolocation' in navigator)) {
+      setGeoState('denied')
+      return
+    }
+    setGeoState('loading')
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const result = await fetchFuelPrices(
+          position.coords.latitude,
+          position.coords.longitude,
+        )
+        if (result.prices.length === 0) {
+          setGeoState('denied')
+          return
+        }
+        setLivePrices(result.prices)
+        setProvince(result.province)
+        setGeoState('ready')
+        setPrice(String(priceFor(fuelType, result.prices) ?? ''))
+      },
+      () => setGeoState('denied'),
+      { timeout: 10_000, maximumAge: 600_000 },
+    )
   }
 
   function pickFuelType(next: string) {
     setFuelType(next)
-    const estimate = FUEL_PRICES[next]
+    const estimate = priceFor(next)
     if (estimate) setPrice(String(estimate))
   }
 
@@ -145,8 +200,15 @@ export function LogFuelButton({
                 </option>
               ))}
             </select>
-            <span className="text-xs text-zinc-500">
-              Harga terisi otomatis (estimasi) — sesuaikan dengan harga SPBU.
+            <span className="flex items-center gap-1 text-xs text-zinc-500">
+              <MapPin className="size-3" />
+              {geoState === 'loading'
+                ? 'Mendeteksi lokasi untuk harga BBM…'
+                : geoState === 'ready'
+                  ? `Harga live MyPertamina · ${province}`
+                  : geoState === 'denied'
+                    ? 'Lokasi tidak aktif — pakai estimasi nasional'
+                    : 'Izinkan lokasi untuk harga BBM sesuai provinsi'}
             </span>
           </label>
 
