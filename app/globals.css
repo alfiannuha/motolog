@@ -65,6 +65,15 @@
   padding-right: env(safe-area-inset-right);
 }
 
+/* Native <dialog> hides itself via the UA rule `dialog:not([open]){display:none}`.
+   Sticky-footer layouts put a `flex` utility on the dialog, and an author
+   `display` value outranks the UA hide rule — so a closed dialog stayed
+   visible. This unlayered rule wins over the layered utilities and restores
+   the default hide. */
+dialog:not([open]) {
+  display: none;
+}
+
 /* Keep the floating SOS button clear of the PWA install banner and hide it
    while any modal/dialog is open. */
 body:has(.pwa-install-banner) .emergency-fab {
