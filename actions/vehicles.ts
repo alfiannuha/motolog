@@ -6,6 +6,7 @@ import { z } from 'zod'
 
 import { createServerClient } from '@/lib/supabase/server'
 import { getStandardRules } from '@/lib/standard-rules'
+import { parseAmount } from '@/lib/utils'
 import type { ActionResult, Vehicle, VehicleWithLastLog } from '@/types'
 import type { Database } from '@/types/database'
 
@@ -33,11 +34,14 @@ const createVehicleSchema = z.object({
       .max(2100, 'Tahun tidak valid')
       .nullable(),
   ),
-  current_odometer: z.coerce
-    .number()
-    .int()
-    .min(0, 'Odometer tidak boleh negatif')
-    .default(0),
+  current_odometer: z.preprocess(
+    parseAmount,
+    z.coerce
+      .number()
+      .int()
+      .min(0, 'Odometer tidak boleh negatif')
+      .default(0),
+  ),
 })
 
 function standardRules(vehicle: Vehicle): MaintenanceRuleInsert[] {

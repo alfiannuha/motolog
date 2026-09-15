@@ -5,6 +5,7 @@ import { z } from 'zod'
 
 import { calculatePartStatus, sortByUrgency } from '@/lib/maintenance-health'
 import { createServerClient } from '@/lib/supabase/server'
+import { parseAmount } from '@/lib/utils'
 import type {
   ActionResult,
   MaintenanceLog,
@@ -33,7 +34,10 @@ const logSchema = z.object({
   serviceDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Tanggal servis tidak valid'),
-  odometer: z.coerce.number().int().min(0, 'Odometer tidak boleh negatif'),
+  odometer: z.preprocess(
+    parseAmount,
+    z.coerce.number().int().min(0, 'Odometer tidak boleh negatif'),
+  ),
   workshopName: z.preprocess(
     emptyToNull,
     z.string().trim().max(150, 'Nama bengkel terlalu panjang').nullable(),

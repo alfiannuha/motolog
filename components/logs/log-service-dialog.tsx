@@ -6,7 +6,7 @@ import { useRef, useState, useTransition } from 'react'
 import { createMaintenanceLog } from '@/actions/maintenance'
 import { scanReceipt } from '@/actions/receipt-ocr'
 import { compressImage, matchRuleId } from '@/lib/receipt'
-import { formatRupiah } from '@/lib/utils'
+import { formatRupiah, parseAmountToNumber } from '@/lib/utils'
 import type { PartStatus } from '@/types'
 
 type DraftItem = {
@@ -28,6 +28,16 @@ const newItem = (): DraftItem => ({
 
 const fieldClass =
   'w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm outline-none focus:border-black dark:border-white/15 dark:focus:border-white'
+
+const dialogClass =
+  'm-auto flex max-h-[92vh] w-[min(94vw,520px)] flex-col overflow-hidden rounded-2xl border border-black/10 bg-white p-0 backdrop:bg-black/40 dark:border-white/10 dark:bg-zinc-900'
+
+const formClass = 'flex min-h-0 flex-1 flex-col'
+
+const bodyClass = 'grid flex-1 gap-4 overflow-y-auto px-5 py-4'
+
+const footerClass =
+  'flex justify-end gap-2 border-t border-black/10 px-5 py-3 dark:border-white/10'
 
 function todayInputValue(): string {
   const now = new Date()
@@ -55,7 +65,7 @@ export function LogServiceButton({
   const dateRef = useRef<HTMLInputElement>(null)
   const workshopRef = useRef<HTMLInputElement>(null)
 
-  const total = items.reduce((sum, item) => sum + (Number(item.cost) || 0), 0)
+  const total = items.reduce((sum, item) => sum + (parseAmountToNumber(item.cost) || 0), 0)
 
   function open() {
     setItems([newItem()])
@@ -132,7 +142,7 @@ export function LogServiceButton({
     const form = event.currentTarget
 
     const filled = items.filter(
-      (item) => item.itemName.trim() !== '' || Number(item.cost) > 0,
+      (item) => item.itemName.trim() !== '' || parseAmountToNumber(item.cost) > 0,
     )
     if (filled.length === 0) {
       setError('Tambahkan minimal satu item pekerjaan')
@@ -147,7 +157,7 @@ export function LogServiceButton({
         filled.map((item) => ({
           itemName: item.itemName.trim(),
           itemType: item.itemType,
-          cost: Number(item.cost) || 0,
+          cost: parseAmountToNumber(item.cost) || 0,
           ruleId: item.ruleId || null,
         })),
       ),
@@ -174,13 +184,11 @@ export function LogServiceButton({
         Log Servis Baru
       </button>
 
-      <dialog
-        ref={dialogRef}
-        className="m-auto max-h-[92vh] w-[min(94vw,520px)] overflow-y-auto rounded-2xl border border-black/10 bg-white p-5 backdrop:bg-black/40 dark:border-white/10 dark:bg-zinc-900"
-      >
-        <h2 className="text-lg font-semibold">Log Servis Baru</h2>
+      <dialog ref={dialogRef} className={dialogClass}>
+        <h2 className="px-5 pt-5 text-lg font-semibold">Log Servis Baru</h2>
 
-        <form ref={formRef} onSubmit={submit} className="mt-4 grid gap-4">
+        <form ref={formRef} onSubmit={submit} className={formClass}>
+          <div className={bodyClass}>
           <div className="grid gap-2">
             <input
               ref={scanInputRef}
@@ -230,9 +238,8 @@ export function LogServiceButton({
               Odometer (km)
               <input
                 name="odometer"
-                type="number"
+                type="text"
                 inputMode="numeric"
-                min={0}
                 required
                 defaultValue={currentOdometer}
                 className={fieldClass}
@@ -310,9 +317,8 @@ export function LogServiceButton({
                     onChange={(event) =>
                       patchItem(item.key, { cost: event.target.value })
                     }
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
+                    type="text"
+                    inputMode="decimal"
                     placeholder="Biaya"
                     className={`${fieldClass} flex-1`}
                   />
@@ -353,29 +359,30 @@ export function LogServiceButton({
             <textarea name="notes" rows={2} maxLength={2000} className={fieldClass} />
           </label>
 
-          <div className="flex items-center justify-between border-t border-black/10 pt-3 dark:border-white/10">
-            <span className="text-sm text-zinc-500">Total</span>
-            <span className="text-lg font-semibold">{formatRupiah(total)}</span>
+          {error ? <p className="text-sm text-red-600">{error}</p> : null}
           </div>
 
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
-
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={close}
-              className="rounded-lg px-4 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/5"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={pending}
-              className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
-            >
-              {pending ? <Loader2 className="size-4 animate-spin" /> : null}
-              Simpan
-            </button>
+          <div className={`${footerClass} items-center justify-between`}>
+            <span className="text-sm text-zinc-500">
+              Total <span className="ml-1 text-lg font-semibold text-foreground">{formatRupiah(total)}</span>
+            </span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={close}
+                className="rounded-lg px-4 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/5"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={pending}
+                className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
+              >
+                {pending ? <Loader2 className="size-4 animate-spin" /> : null}
+                Simpan
+              </button>
+            </div>
           </div>
         </form>
       </dialog>

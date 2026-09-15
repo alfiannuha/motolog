@@ -7,13 +7,21 @@ import { createFuelLog, deleteFuelLog, updateFuelLog } from '@/actions/fuel'
 import { fetchFuelPrices } from '@/actions/fuel-price'
 import { ConfirmDeleteButton } from '@/components/confirm-delete-button'
 import type { FuelPrice } from '@/lib/fuel-price'
+import { parseAmountToNumber } from '@/lib/utils'
 import type { FuelLog } from '@/types'
 
 const fieldClass =
   'w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm outline-none focus:border-black dark:border-white/15 dark:focus:border-white'
 
 const dialogClass =
-  'm-auto max-h-[92vh] w-[min(94vw,480px)] overflow-y-auto rounded-2xl border border-black/10 bg-white p-5 backdrop:bg-black/40 dark:border-white/10 dark:bg-zinc-900'
+  'm-auto flex max-h-[92vh] w-[min(94vw,480px)] flex-col overflow-hidden rounded-2xl border border-black/10 bg-white p-0 backdrop:bg-black/40 dark:border-white/10 dark:bg-zinc-900'
+
+const formClass = 'flex min-h-0 flex-1 flex-col'
+
+const bodyClass = 'grid flex-1 gap-4 overflow-y-auto px-5 py-4'
+
+const footerClass =
+  'flex justify-end gap-2 border-t border-black/10 px-5 py-3 dark:border-white/10'
 
 const buttonClass =
   'flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black'
@@ -65,7 +73,7 @@ function todayInputValue(): string {
 }
 
 function litersFrom(total: string, price: string): string {
-  const amount = Number(total.replace(',', '.')) / Number(price.replace(',', '.'))
+  const amount = parseAmountToNumber(total) / parseAmountToNumber(price)
   return Number.isFinite(amount) && amount > 0 ? amount.toFixed(2) : ''
 }
 
@@ -89,13 +97,12 @@ function FuelFields({
           Harga / liter
           <input
             name="pricePerLiter"
-            type="number"
-            inputMode="numeric"
-            min={0}
+            type="text"
+            inputMode="decimal"
             required
             value={price}
             onChange={(event) => onPrice(event.target.value)}
-            placeholder="10000"
+            placeholder="15.950"
             className={fieldClass}
           />
         </label>
@@ -103,13 +110,12 @@ function FuelFields({
           Total bayar
           <input
             name="totalCost"
-            type="number"
-            inputMode="numeric"
-            min={0}
+            type="text"
+            inputMode="decimal"
             required
             value={total}
             onChange={(event) => onTotal(event.target.value)}
-            placeholder="35000"
+            placeholder="50.000"
             className={fieldClass}
           />
         </label>
@@ -233,9 +239,10 @@ export function LogFuelButton({
       </button>
 
       <dialog ref={dialogRef} className={dialogClass}>
-        <h2 className="text-lg font-semibold">Catat Isi BBM</h2>
+        <h2 className="px-5 pt-5 text-lg font-semibold">Catat Isi BBM</h2>
 
-        <form ref={formRef} onSubmit={submit} className="mt-4 grid gap-4">
+        <form ref={formRef} onSubmit={submit} className={formClass}>
+          <div className={bodyClass}>
           <div className="grid grid-cols-2 gap-3">
             <label className="grid gap-1 text-sm">
               Tanggal
@@ -251,9 +258,8 @@ export function LogFuelButton({
               Odometer (km)
               <input
                 name="odometer"
-                type="number"
+                type="text"
                 inputMode="numeric"
-                min={0}
                 required
                 defaultValue={currentOdometer}
                 className={fieldClass}
@@ -306,8 +312,9 @@ export function LogFuelButton({
           </label>
 
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
+          </div>
 
-          <div className="flex justify-end gap-2">
+          <div className={footerClass}>
             <button
               type="button"
               onClick={() => dialogRef.current?.close()}
@@ -384,10 +391,11 @@ export function FuelRowActions({
         onClose={() => setError(null)}
         className={dialogClass}
       >
-        <h2 className="text-lg font-semibold">Edit Isi BBM</h2>
+        <h2 className="px-5 pt-5 text-lg font-semibold">Edit Isi BBM</h2>
 
-        <form ref={formRef} onSubmit={submit} className="mt-4 grid gap-4">
-          <div className="grid grid-cols-2 gap-3">
+        <form ref={formRef} onSubmit={submit} className={formClass}>
+          <div className={bodyClass}>
+            <div className="grid grid-cols-2 gap-3">
             <label className="grid gap-1 text-sm">
               Tanggal
               <input
@@ -402,9 +410,8 @@ export function FuelRowActions({
               Odometer (km)
               <input
                 name="odometer"
-                type="number"
+                type="text"
                 inputMode="numeric"
-                min={0}
                 required
                 defaultValue={log.odometer}
                 className={fieldClass}
@@ -452,8 +459,9 @@ export function FuelRowActions({
           </label>
 
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
+          </div>
 
-          <div className="flex justify-end gap-2">
+          <div className={footerClass}>
             <button
               type="button"
               onClick={() => dialogRef.current?.close()}

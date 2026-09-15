@@ -9,6 +9,16 @@ import type { VehicleSpec } from '@/types'
 const fieldClass =
   'w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm outline-none focus:border-black dark:border-white/15 dark:focus:border-white'
 
+const dialogClass =
+  'm-auto flex max-h-[92vh] w-[min(94vw,520px)] flex-col overflow-hidden rounded-2xl border border-black/10 bg-white p-0 backdrop:bg-black/40 dark:border-white/10 dark:bg-zinc-900'
+
+const formClass = 'flex min-h-0 flex-1 flex-col'
+
+const bodyClass = 'grid flex-1 gap-3 overflow-y-auto px-5 py-4'
+
+const footerClass =
+  'flex justify-end gap-2 border-t border-black/10 px-5 py-3 dark:border-white/10'
+
 const FIELDS: { name: keyof FormValues; label: string; placeholder: string }[] = [
   {
     name: 'engineOilSpec',
@@ -139,44 +149,45 @@ export function SpecsPanel({
         </p>
       ) : null}
 
-      <dialog
-        ref={dialogRef}
-        className="m-auto max-h-[92vh] w-[min(94vw,520px)] overflow-y-auto rounded-2xl border border-black/10 bg-white p-5 backdrop:bg-black/40 dark:border-white/10 dark:bg-zinc-900"
-      >
-        <h2 className="text-lg font-semibold">Spesifikasi Kendaraan</h2>
-        <p className="mt-1 text-sm text-zinc-500">
-          Referensi cepat part & ukuran pabrik.
-        </p>
+      <dialog ref={dialogRef} className={dialogClass}>
+        <div className="px-5 pt-5">
+          <h2 className="text-lg font-semibold">Spesifikasi Kendaraan</h2>
+          <p className="mt-1 text-sm text-zinc-500">
+            Referensi cepat part & ukuran pabrik.
+          </p>
+        </div>
 
-        <form onSubmit={submit} className="mt-4 grid gap-3">
-          {FIELDS.map((field) => (
-            <label key={field.name} className="grid gap-1 text-sm">
-              {field.label}
-              <input
-                name={field.name}
-                defaultValue={values[field.name]}
-                maxLength={100}
-                placeholder={field.placeholder}
+        <form onSubmit={submit} className={formClass}>
+          <div className={bodyClass}>
+            {FIELDS.map((field) => (
+              <label key={field.name} className="grid gap-1 text-sm">
+                {field.label}
+                <input
+                  name={field.name}
+                  defaultValue={values[field.name]}
+                  maxLength={100}
+                  placeholder={field.placeholder}
+                  className={fieldClass}
+                />
+              </label>
+            ))}
+
+            <label className="grid gap-1 text-sm">
+              Catatan tambahan
+              <textarea
+                name="notes"
+                rows={3}
+                maxLength={2000}
+                defaultValue={values.notes}
+                placeholder="Torsi baut, tipe part number, dll."
                 className={fieldClass}
               />
             </label>
-          ))}
 
-          <label className="grid gap-1 text-sm">
-            Catatan tambahan
-            <textarea
-              name="notes"
-              rows={3}
-              maxLength={2000}
-              defaultValue={values.notes}
-              placeholder="Torsi baut, tipe part number, dll."
-              className={fieldClass}
-            />
-          </label>
+            {error ? <p className="text-sm text-red-600">{error}</p> : null}
+          </div>
 
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
-
-          <div className="mt-2 flex justify-end gap-2">
+          <div className={footerClass}>
             <button
               type="button"
               onClick={() => dialogRef.current?.close()}

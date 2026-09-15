@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
 import { createServerClient } from '@/lib/supabase/server'
+import { parseAmount } from '@/lib/utils'
 import type { ActionResult, MaintenanceRule } from '@/types'
 
 const emptyToNull = (value: unknown) =>
@@ -11,7 +12,10 @@ const emptyToNull = (value: unknown) =>
 
 const interval = (label: string) =>
   z.preprocess(
-    emptyToNull,
+    (value) => {
+      const normalized = parseAmount(value)
+      return emptyToNull(normalized)
+    },
     z.coerce
       .number()
       .int()

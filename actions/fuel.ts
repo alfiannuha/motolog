@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
 import { createServerClient } from '@/lib/supabase/server'
+import { parseAmount } from '@/lib/utils'
 import type { ActionResult, FuelLog } from '@/types'
 
 const toBool = (value: unknown) =>
@@ -12,19 +13,22 @@ const toBool = (value: unknown) =>
 const emptyToNull = (value: unknown) =>
   typeof value === 'string' && value.trim() === '' ? null : value
 
-const commaToDot = (value: unknown) =>
-  typeof value === 'string' ? value.replace(',', '.') : value
-
 const fuelLogSchema = z.object({
   logDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Tanggal tidak valid'),
-  odometer: z.coerce.number().int().min(0, 'Odometer tidak boleh negatif'),
+  odometer: z.preprocess(
+    parseAmount,
+    z.coerce.number().int().min(0, 'Odometer tidak boleh negatif'),
+  ),
   pricePerLiter: z.preprocess(
-    commaToDot,
+    parseAmount,
     z.coerce.number().positive('Harga per liter harus lebih dari 0'),
   ),
-  totalCost: z.preprocess(commaToDot, z.coerce.number().positive('Total bayar harus lebih dari 0')),
+  totalCost: z.preprocess(
+    parseAmount,
+    z.coerce.number().positive('Total bayar harus lebih dari 0'),
+  ),
   fuelType: z.preprocess(
     emptyToNull,
     z.string().trim().max(50, 'Jenis BBM terlalu panjang').nullable(),

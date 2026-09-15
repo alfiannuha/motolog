@@ -6,6 +6,7 @@ import { useRef, useState, useTransition } from 'react'
 
 import { updateOdometer } from '@/actions/vehicles'
 import { Badge } from '@/components/ui/badge'
+import { parseAmountToNumber } from '@/lib/utils'
 import { vehicleKind } from '@/lib/vehicle-kind'
 import type { VehicleWithLastLog } from '@/types'
 
@@ -30,7 +31,7 @@ export function VehicleList({ vehicles }: { vehicles: VehicleWithLastLog[] }) {
 
   function submit() {
     if (!selected) return
-    const value = Number(odometer)
+    const value = parseAmountToNumber(odometer)
     startTransition(async () => {
       const result = await updateOdometer(selected.id, value)
       if (result.ok) closeDialog()
@@ -97,31 +98,34 @@ export function VehicleList({ vehicles }: { vehicles: VehicleWithLastLog[] }) {
       <dialog
         ref={dialogRef}
         onClose={() => setSelected(null)}
-        className="m-auto w-[min(92vw,380px)] rounded-2xl border border-black/10 bg-white p-5 backdrop:bg-black/40 dark:border-white/10 dark:bg-zinc-900"
+        className="m-auto flex max-h-[92vh] w-[min(92vw,380px)] flex-col overflow-hidden rounded-2xl border border-black/10 bg-white p-0 backdrop:bg-black/40 dark:border-white/10 dark:bg-zinc-900"
       >
-        <h2 className="text-lg font-semibold">
-          Update Kilometer
-          {selected ? <span className="text-zinc-500"> — {selected.name}</span> : null}
-        </h2>
-        <p className="mt-1 text-sm text-zinc-500">
-          Odometer saat ini {selected?.current_odometer.toLocaleString('id-ID')} km.
-          Tidak boleh lebih kecil.
-        </p>
+        <div className="px-5 pt-5">
+          <h2 className="text-lg font-semibold">
+            Update Kilometer
+            {selected ? <span className="text-zinc-500"> — {selected.name}</span> : null}
+          </h2>
+          <p className="mt-1 text-sm text-zinc-500">
+            Odometer saat ini {selected?.current_odometer.toLocaleString('id-ID')} km.
+            Tidak boleh lebih kecil.
+          </p>
+        </div>
 
-        <input
-          type="number"
-          inputMode="numeric"
-          min={selected?.current_odometer ?? 0}
-          value={odometer}
-          onChange={(event) => setOdometer(event.target.value)}
-          onKeyDown={(event) => event.key === 'Enter' && submit()}
-          autoFocus
-          className="mt-4 w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-lg outline-none focus:border-black dark:border-white/15 dark:focus:border-white"
-        />
+        <div className="grid flex-1 gap-2 overflow-y-auto px-5 py-4">
+          <input
+            type="text"
+            inputMode="numeric"
+            value={odometer}
+            onChange={(event) => setOdometer(event.target.value)}
+            onKeyDown={(event) => event.key === 'Enter' && submit()}
+            autoFocus
+            className="w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-lg outline-none focus:border-black dark:border-white/15 dark:focus:border-white"
+          />
 
-        {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
+          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        </div>
 
-        <div className="mt-5 flex justify-end gap-2">
+        <div className="flex justify-end gap-2 border-t border-black/10 px-5 py-3 dark:border-white/10">
           <button
             onClick={closeDialog}
             className="rounded-lg px-4 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/5"

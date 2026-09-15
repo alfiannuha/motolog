@@ -9,6 +9,14 @@ import type { PartStatus } from '@/types'
 const fieldClass =
   'w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm outline-none focus:border-black dark:border-white/15 dark:focus:border-white'
 
+const dialogClass =
+  'm-auto flex max-h-[92vh] w-[min(94vw,520px)] flex-col overflow-hidden rounded-2xl border border-black/10 bg-white p-0 backdrop:bg-black/40 dark:border-white/10 dark:bg-zinc-900'
+
+const bodyClass = 'grid flex-1 gap-2 overflow-y-auto px-5 py-4'
+
+const footerClass =
+  'flex justify-end border-t border-black/10 px-5 py-3 dark:border-white/10'
+
 function RuleRow({ vehicleId, part }: { vehicleId: string; part: PartStatus }) {
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
@@ -46,9 +54,8 @@ function RuleRow({ vehicleId, part }: { vehicleId: string; part: PartStatus }) {
           Interval (km)
           <input
             name="intervalKm"
-            type="number"
+            type="text"
             inputMode="numeric"
-            min={1}
             defaultValue={part.intervalKm ?? ''}
             placeholder="—"
             className={fieldClass}
@@ -58,9 +65,8 @@ function RuleRow({ vehicleId, part }: { vehicleId: string; part: PartStatus }) {
           Interval (bulan)
           <input
             name="intervalMonths"
-            type="number"
+            type="text"
             inputMode="numeric"
-            min={1}
             defaultValue={part.intervalMonths ?? ''}
             placeholder="—"
             className={fieldClass}
@@ -128,16 +134,15 @@ export function ManageRulesDialog({
         Kelola Komponen
       </button>
 
-      <dialog
-        ref={dialogRef}
-        className="m-auto max-h-[92vh] w-[min(94vw,520px)] overflow-y-auto rounded-2xl border border-black/10 bg-white p-5 backdrop:bg-black/40 dark:border-white/10 dark:bg-zinc-900"
-      >
-        <h2 className="text-lg font-semibold">Kelola Komponen Servis</h2>
-        <p className="mt-1 text-sm text-zinc-500">
-          Atur interval servis tiap komponen kendaraan ini.
-        </p>
+      <dialog ref={dialogRef} className={dialogClass}>
+        <div className="px-5 pt-5">
+          <h2 className="text-lg font-semibold">Kelola Komponen Servis</h2>
+          <p className="mt-1 text-sm text-zinc-500">
+            Atur interval servis tiap komponen kendaraan ini.
+          </p>
+        </div>
 
-        <div className="mt-4 grid gap-2">
+        <div className={bodyClass}>
           {parts.length === 0 ? (
             <p className="rounded-lg border border-dashed border-black/15 p-4 text-center text-sm text-zinc-500 dark:border-white/15">
               Belum ada komponen. Tambahkan di bawah.
@@ -147,55 +152,53 @@ export function ManageRulesDialog({
               <RuleRow key={part.ruleId} vehicleId={vehicleId} part={part} />
             ))
           )}
+
+          <form
+            ref={addFormRef}
+            onSubmit={add}
+            className="mt-2 grid gap-2 rounded-xl border border-black/10 bg-black/[.02] p-3 dark:border-white/10 dark:bg-white/[.03]"
+          >
+            <span className="text-sm font-medium">Tambah komponen baru</span>
+            <input
+              name="partName"
+              required
+              maxLength={100}
+              placeholder="Aki, Ban Depan, Gear Set..."
+              className={fieldClass}
+            />
+            <div className="flex gap-2">
+              <input
+                name="intervalKm"
+                type="text"
+                inputMode="numeric"
+                placeholder="Interval km"
+                className={fieldClass}
+              />
+              <input
+                name="intervalMonths"
+                type="text"
+                inputMode="numeric"
+                placeholder="Interval bulan"
+                className={fieldClass}
+              />
+            </div>
+            {error ? <p className="text-sm text-red-600">{error}</p> : null}
+            <button
+              type="submit"
+              disabled={pending}
+              className="flex items-center justify-center gap-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
+            >
+              {pending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Plus className="size-4" />
+              )}
+              Tambah Komponen
+            </button>
+          </form>
         </div>
 
-        <form
-          ref={addFormRef}
-          onSubmit={add}
-          className="mt-4 grid gap-2 rounded-xl border border-black/10 bg-black/[.02] p-3 dark:border-white/10 dark:bg-white/[.03]"
-        >
-          <span className="text-sm font-medium">Tambah komponen baru</span>
-          <input
-            name="partName"
-            required
-            maxLength={100}
-            placeholder="Aki, Ban Depan, Gear Set..."
-            className={fieldClass}
-          />
-          <div className="flex gap-2">
-            <input
-              name="intervalKm"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              placeholder="Interval km"
-              className={fieldClass}
-            />
-            <input
-              name="intervalMonths"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              placeholder="Interval bulan"
-              className={fieldClass}
-            />
-          </div>
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
-          <button
-            type="submit"
-            disabled={pending}
-            className="flex items-center justify-center gap-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
-          >
-            {pending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Plus className="size-4" />
-            )}
-            Tambah Komponen
-          </button>
-        </form>
-
-        <div className="mt-4 flex justify-end">
+        <div className={footerClass}>
           <button
             type="button"
             onClick={() => dialogRef.current?.close()}

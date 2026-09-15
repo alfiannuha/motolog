@@ -181,13 +181,14 @@ export function HealthQuickCheck({
 
           <DialogContent
             showCloseButton={false}
-            className="max-h-[92vh] overflow-y-auto sm:max-w-md"
+            className="flex max-h-[92vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-md"
           >
-            <DialogHeader>
+            <DialogHeader className="px-4 pt-4">
               <DialogTitle>Catat Ban &amp; Aki</DialogTitle>
             </DialogHeader>
 
-            <form onSubmit={submit} className="grid gap-4">
+            <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
+              <div className="grid flex-1 gap-4 overflow-y-auto px-4 py-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 Tekanan Angin Ban
               </p>
@@ -279,8 +280,9 @@ export function HealthQuickCheck({
               </div>
 
               {error ? <p className="text-sm text-red-600">{error}</p> : null}
+              </div>
 
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-2 border-t border-black/10 px-4 py-3 dark:border-white/10">
                 <Button
                   type="button"
                   variant="ghost"
