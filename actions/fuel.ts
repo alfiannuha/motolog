@@ -20,12 +20,11 @@ const fuelLogSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Tanggal tidak valid'),
   odometer: z.coerce.number().int().min(0, 'Odometer tidak boleh negatif'),
-  liters: z.preprocess(commaToDot, z.coerce.number().positive('Jumlah liter harus lebih dari 0')),
   pricePerLiter: z.preprocess(
     commaToDot,
-    z.coerce.number().min(0, 'Harga tidak boleh negatif'),
+    z.coerce.number().positive('Harga per liter harus lebih dari 0'),
   ),
-  totalCost: z.preprocess(commaToDot, z.coerce.number().min(0, 'Total tidak boleh negatif')),
+  totalCost: z.preprocess(commaToDot, z.coerce.number().positive('Total bayar harus lebih dari 0')),
   fuelType: z.preprocess(
     emptyToNull,
     z.string().trim().max(50, 'Jenis BBM terlalu panjang').nullable(),
@@ -58,10 +57,10 @@ export async function createFuelLog(
   const parsed = fuelLogSchema.safeParse(Object.fromEntries(payload))
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message }
 
-  const { logDate, odometer, liters, pricePerLiter, fuelType, notes } = parsed.data
+  const { logDate, odometer, pricePerLiter, totalCost, fuelType, notes } =
+    parsed.data
   const isFullTank = toBool(payload.get('isFullTank'))
-  const totalCost =
-    parsed.data.totalCost > 0 ? parsed.data.totalCost : liters * pricePerLiter
+  const liters = Math.round((totalCost / pricePerLiter) * 100) / 100
 
   const supabase = createServerClient()
   const [vehicleResult, latestResult] = await Promise.all([

@@ -4,7 +4,6 @@ import { Fuel, Loader2 } from 'lucide-react'
 import { useRef, useState, useTransition } from 'react'
 
 import { createFuelLog } from '@/actions/fuel'
-import { formatRupiah } from '@/lib/utils'
 
 const fieldClass =
   'w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm outline-none focus:border-black dark:border-white/15 dark:focus:border-white'
@@ -21,6 +20,19 @@ const FUEL_TYPES = [
   'Pertamina Dex',
 ]
 
+// Estimasi harga nasional (Rp/liter). Edit bebas di form — tidak ada API resmi.
+const FUEL_PRICES: Record<string, number> = {
+  Pertalite: 10_000,
+  Pertamax: 12_500,
+  'Pertamax Turbo': 14_000,
+  'Shell Super': 13_000,
+  'Shell V-Power': 14_500,
+  'Revvo 89': 11_500,
+  'Revvo 92': 13_000,
+  'Bio Solar': 6_800,
+  'Pertamina Dex': 13_500,
+}
+
 function todayInputValue(): string {
   const now = new Date()
   const offset = now.getTimezoneOffset() * 60_000
@@ -34,26 +46,32 @@ export function LogFuelButton({
   vehicleId: string
   currentOdometer: number
 }) {
-  const [liters, setLiters] = useState('')
   const [price, setPrice] = useState('')
   const [total, setTotal] = useState('')
+  const [fuelType, setFuelType] = useState('Pertalite')
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const dialogRef = useRef<HTMLDialogElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
 
+  const liters = (() => {
+    const amount = Number(total.replace(',', '.')) / Number(price.replace(',', '.'))
+    return Number.isFinite(amount) && amount > 0 ? amount.toFixed(2) : ''
+  })()
+
   function open() {
-    setLiters('')
-    setPrice('')
+    setPrice(String(FUEL_PRICES.Pertalite))
     setTotal('')
+    setFuelType('Pertalite')
     setError(null)
     formRef.current?.reset()
     dialogRef.current?.showModal()
   }
 
-  function recalc(nextLiters: string, nextPrice: string) {
-    const amount = Number(nextLiters.replace(',', '.')) * Number(nextPrice.replace(',', '.'))
-    if (amount > 0) setTotal(String(Math.round(amount)))
+  function pickFuelType(next: string) {
+    setFuelType(next)
+    const estimate = FUEL_PRICES[next]
+    if (estimate) setPrice(String(estimate))
   }
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -113,24 +131,26 @@ export function LogFuelButton({
             </label>
           </div>
 
+          <label className="grid gap-1 text-sm">
+            Jenis BBM
+            <select
+              name="fuelType"
+              value={fuelType}
+              onChange={(event) => pickFuelType(event.target.value)}
+              className={fieldClass}
+            >
+              {FUEL_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+            <span className="text-xs text-zinc-500">
+              Harga terisi otomatis (estimasi) — sesuaikan dengan harga SPBU.
+            </span>
+          </label>
+
           <div className="grid grid-cols-2 gap-3">
-            <label className="grid gap-1 text-sm">
-              Jumlah (liter)
-              <input
-                name="liters"
-                type="text"
-                inputMode="decimal"
-                min={0}
-                required
-                value={liters}
-                onChange={(event) => {
-                  setLiters(event.target.value)
-                  recalc(event.target.value, price)
-                }}
-                placeholder="3,5"
-                className={fieldClass}
-              />
-            </label>
             <label className="grid gap-1 text-sm">
               Harga / liter
               <input
@@ -140,48 +160,43 @@ export function LogFuelButton({
                 min={0}
                 required
                 value={price}
-                onChange={(event) => {
-                  setPrice(event.target.value)
-                  recalc(liters, event.target.value)
-                }}
+                onChange={(event) => setPrice(event.target.value)}
                 placeholder="10000"
+                className={fieldClass}
+              />
+            </label>
+            <label className="grid gap-1 text-sm">
+              Total bayar
+              <input
+                name="totalCost"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                required
+                value={total}
+                onChange={(event) => setTotal(event.target.value)}
+                placeholder="35000"
                 className={fieldClass}
               />
             </label>
           </div>
 
           <label className="grid gap-1 text-sm">
-            Total bayar
+            Jumlah (liter)
             <input
-              name="totalCost"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              required
-              value={total}
-              onChange={(event) => setTotal(event.target.value)}
-              placeholder="35000"
-              className={fieldClass}
+              name="liters"
+              type="text"
+              readOnly
+              tabIndex={-1}
+              value={liters}
+              placeholder="Otomatis dari total ÷ harga"
+              className={`${fieldClass} cursor-not-allowed opacity-60`}
             />
             <span className="text-xs text-zinc-500">
-              {total ? formatRupiah(Number(total) || 0) : 'Terisi otomatis dari liter × harga'}
+              {liters
+                ? `${liters} L`
+                : 'Terisi otomatis dari total bayar ÷ harga per liter'}
             </span>
-          </label>
-
-          <label className="grid gap-1 text-sm">
-            Jenis BBM
-            <input
-              name="fuelType"
-              list="fuel-types"
-              maxLength={50}
-              defaultValue="Pertalite"
-              className={fieldClass}
-            />
-            <datalist id="fuel-types">
-              {FUEL_TYPES.map((type) => (
-                <option key={type} value={type} />
-              ))}
-            </datalist>
           </label>
 
           <label className="flex items-center gap-2 text-sm">
