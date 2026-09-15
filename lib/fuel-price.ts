@@ -42,7 +42,12 @@ export async function getFuelPrices(location?: {
   lon: number
 }): Promise<FuelPriceResult> {
   try {
-    const response = await fetch(`${SOURCE}?limit=100&page=1`, {
+    const response = await fetch(SOURCE, {
+      headers: {
+        accept: 'application/json, text/plain, */*',
+        origin: 'https://mypertamina.id',
+        referer: 'https://mypertamina.id/',
+      },
       next: { revalidate: 21_600 },
     })
     if (!response.ok) return EMPTY

@@ -76,6 +76,9 @@ export function LogFuelButton({
   const dialogRef = useRef<HTMLDialogElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
 
+  const fuelTypeRef = useRef(fuelType)
+  const requestRef = useRef(0)
+
   const liters = (() => {
     const amount = Number(total.replace(',', '.')) / Number(price.replace(',', '.'))
     return Number.isFinite(amount) && amount > 0 ? amount.toFixed(2) : ''
@@ -88,9 +91,10 @@ export function LogFuelButton({
   }
 
   function open() {
-    setPrice(String(FUEL_PRICES.Pertalite))
-    setTotal('')
+    fuelTypeRef.current = 'Pertalite'
     setFuelType('Pertalite')
+    setPrice(String(priceFor('Pertalite', livePrices) ?? ''))
+    setTotal('')
     setError(null)
     formRef.current?.reset()
     dialogRef.current?.showModal()
@@ -98,6 +102,7 @@ export function LogFuelButton({
   }
 
   function requestLocation() {
+    const requestId = ++requestRef.current
     if (!('geolocation' in navigator)) {
       setGeoState('denied')
       return
@@ -109,6 +114,7 @@ export function LogFuelButton({
           position.coords.latitude,
           position.coords.longitude,
         )
+        if (requestRef.current !== requestId) return
         if (result.prices.length === 0) {
           setGeoState('denied')
           return
@@ -116,14 +122,17 @@ export function LogFuelButton({
         setLivePrices(result.prices)
         setProvince(result.province)
         setGeoState('ready')
-        setPrice(String(priceFor(fuelType, result.prices) ?? ''))
+        setPrice(String(priceFor(fuelTypeRef.current, result.prices) ?? ''))
       },
-      () => setGeoState('denied'),
+      () => {
+        if (requestRef.current === requestId) setGeoState('denied')
+      },
       { timeout: 10_000, maximumAge: 600_000 },
     )
   }
 
   function pickFuelType(next: string) {
+    fuelTypeRef.current = next
     setFuelType(next)
     const estimate = priceFor(next)
     if (estimate) setPrice(String(estimate))
