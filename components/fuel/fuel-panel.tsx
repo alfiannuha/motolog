@@ -1,6 +1,7 @@
 import { Droplet, Fuel, Gauge, TrendingDown, Wallet } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
+import { FuelRowActions } from '@/components/fuel/fuel-log-dialog'
 import { buildFuelStats } from '@/lib/fuel'
 import { formatKm, formatRupiah } from '@/lib/utils'
 import type { FuelLog } from '@/types'
@@ -31,7 +32,13 @@ function MetricCard({
 const num = (value: number | null, suffix = '') =>
   value == null ? '—' : `${value.toLocaleString('id-ID')}${suffix}`
 
-export function FuelPanel({ logs }: { logs: FuelLog[] }) {
+export function FuelPanel({
+  vehicleId,
+  logs,
+}: {
+  vehicleId: string
+  logs: FuelLog[]
+}) {
   const stats = buildFuelStats(logs)
 
   if (logs.length === 0) {
@@ -127,6 +134,7 @@ export function FuelPanel({ logs }: { logs: FuelLog[] }) {
                       </p>
                     ) : null}
                   </div>
+                  <FuelRowActions vehicleId={vehicleId} log={log} />
                 </div>
                 {log.notes ? (
                   <p className="mt-2 rounded-lg bg-black/[.03] p-2 text-xs text-zinc-600 dark:bg-white/5 dark:text-zinc-300">

@@ -92,7 +92,7 @@ export default async function VehicleDetailPage({
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-500">
           Riwayat Servis
         </h2>
-        <ServiceHistory logs={history} />
+        <ServiceHistory vehicleId={vehicle.id} logs={history} parts={parts} />
       </section>
     </main>
   )

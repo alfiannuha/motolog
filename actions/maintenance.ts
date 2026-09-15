@@ -130,6 +130,86 @@ async function uploadReceipt(
   return { ok: true, url: data.publicUrl }
 }
 
+function receiptPath(url: string | null): string | null {
+  return url?.split(`/${RECEIPT_BUCKET}/`)[1] ?? null
+}
+
+function revalidateMaintenance(vehicleId: string) {
+  revalidatePath(`/vehicles/${vehicleId}`)
+  revalidatePath(`/vehicles/${vehicleId}/analytics`)
+  revalidatePath('/')
+}
+
+// current_odometer is a high-water mark: it only ever moves up, so editing or
+// deleting an old log never silently drags the vehicle's mileage back.
+async function bumpVehicleOdometer(
+  supabase: ReturnType<typeof createServerClient>,
+  vehicleId: string,
+  odometer: number,
+) {
+  const { data: vehicle } = await supabase
+    .from('vehicles')
+    .select('current_odometer')
+    .eq('id', vehicleId)
+    .maybeSingle()
+
+  if (vehicle && odometer > vehicle.current_odometer) {
+    await supabase
+      .from('vehicles')
+      .update({ current_odometer: odometer, updated_at: new Date().toISOString() })
+      .eq('id', vehicleId)
+  }
+}
+
+// Rule "last service" pointers are derived state: after any log change, replay
+// the newest log per linked rule so they never point at a deleted/edited entry.
+async function syncRuleLastService(
+  supabase: ReturnType<typeof createServerClient>,
+  vehicleId: string,
+  ruleIds: string[],
+) {
+  const unique = [...new Set(ruleIds.filter(Boolean))]
+  if (unique.length === 0) return
+
+  const { data: items } = await supabase
+    .from('maintenance_log_items')
+    .select('rule_id, maintenance_logs!inner(service_date, odometer)')
+    .eq('maintenance_logs.vehicle_id', vehicleId)
+    .in('rule_id', unique)
+
+  type ItemRow = {
+    rule_id: string | null
+    maintenance_logs: { service_date: string; odometer: number } | null
+  }
+
+  const latest = new Map<string, { service_date: string; odometer: number }>()
+  for (const row of (items ?? []) as ItemRow[]) {
+    const log = row.maintenance_logs
+    if (!row.rule_id || !log) continue
+    const current = latest.get(row.rule_id)
+    if (
+      !current ||
+      log.service_date > current.service_date ||
+      (log.service_date === current.service_date && log.odometer > current.odometer)
+    ) {
+      latest.set(row.rule_id, log)
+    }
+  }
+
+  for (const ruleId of unique) {
+    const newest = latest.get(ruleId)
+    if (!newest) continue
+    await supabase
+      .from('maintenance_rules')
+      .update({
+        last_service_odometer: newest.odometer,
+        last_service_date: newest.service_date,
+      })
+      .eq('id', ruleId)
+      .eq('vehicle_id', vehicleId)
+  }
+}
+
 export async function createMaintenanceLog(
   vehicleId: string,
   payload: FormData,
@@ -190,42 +270,169 @@ export async function createMaintenanceLog(
   if (itemsError) {
     await supabase.from('maintenance_logs').delete().eq('id', log.id)
     if (receiptUrl) {
-      const path = receiptUrl.split(`/${RECEIPT_BUCKET}/`)[1]
+      const path = receiptPath(receiptUrl)
       if (path) await supabase.storage.from(RECEIPT_BUCKET).remove([path])
     }
     return { ok: false, error: `Gagal menyimpan rincian: ${itemsError.message}` }
   }
 
-  const { data: vehicle } = await supabase
-    .from('vehicles')
-    .select('current_odometer')
-    .eq('id', vehicleId)
+  await bumpVehicleOdometer(supabase, vehicleId, odometer)
+
+  await syncRuleLastService(
+    supabase,
+    vehicleId,
+    items.map((item: ParsedItems) => item.ruleId ?? ''),
+  )
+
+  revalidateMaintenance(vehicleId)
+  return { ok: true, data: log }
+}
+
+export async function updateMaintenanceLog(
+  logId: string,
+  vehicleId: string,
+  payload: FormData,
+): Promise<ActionResult<MaintenanceLog>> {
+  if (!logId || !vehicleId) return { ok: false, error: 'Data servis tidak valid' }
+
+  const receiptInput = payload.get('receiptFile')
+  const receiptFile =
+    receiptInput instanceof File && receiptInput.size > 0 ? receiptInput : null
+
+  const parsed = logSchema.safeParse({
+    ...Object.fromEntries(payload),
+    items: parseItems(payload.get('items')),
+  })
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message }
+  }
+
+  const { serviceDate, odometer, workshopName, totalCost, notes, items } = parsed.data
+  const supabase = createServerClient()
+
+  const { data: existing, error: fetchError } = await supabase
+    .from('maintenance_logs')
+    .select('id, receipt_image_url')
+    .eq('id', logId)
+    .eq('vehicle_id', vehicleId)
+    .maybeSingle()
+
+  if (fetchError) return { ok: false, error: fetchError.message }
+  if (!existing) return { ok: false, error: 'Catatan servis tidak ditemukan' }
+
+  const { data: previousItems } = await supabase
+    .from('maintenance_log_items')
+    .select('rule_id')
+    .eq('log_id', logId)
+
+  let receiptUrl = existing.receipt_image_url
+  if (receiptFile) {
+    const upload = await uploadReceipt(vehicleId, receiptFile)
+    if (!upload.ok) return upload
+    receiptUrl = upload.url
+  }
+
+  const { data: log, error: updateError } = await supabase
+    .from('maintenance_logs')
+    .update({
+      service_date: serviceDate,
+      odometer,
+      workshop_name: workshopName,
+      total_cost: totalCost,
+      receipt_image_url: receiptUrl,
+      notes,
+    })
+    .eq('id', logId)
+    .eq('vehicle_id', vehicleId)
+    .select()
     .single()
 
-  if (vehicle && odometer > vehicle.current_odometer) {
-    await supabase
-      .from('vehicles')
-      .update({ current_odometer: odometer, updated_at: new Date().toISOString() })
-      .eq('id', vehicleId)
+  if (updateError) return { ok: false, error: updateError.message }
+
+  const { error: clearError } = await supabase
+    .from('maintenance_log_items')
+    .delete()
+    .eq('log_id', logId)
+
+  if (clearError) return { ok: false, error: clearError.message }
+
+  const { error: itemsError } = await supabase
+    .from('maintenance_log_items')
+    .insert(
+      items.map((item) => ({
+        log_id: logId,
+        rule_id: item.ruleId,
+        item_name: item.itemName,
+        item_type: item.itemType,
+        cost: item.cost,
+      })),
+    )
+
+  if (itemsError) return { ok: false, error: itemsError.message }
+
+  if (receiptFile && existing.receipt_image_url) {
+    const oldPath = receiptPath(existing.receipt_image_url)
+    if (oldPath) await supabase.storage.from(RECEIPT_BUCKET).remove([oldPath])
   }
 
-  const ruleIds = [
-    ...new Set(
-      items
-        .map((item: ParsedItems) => item.ruleId)
-        .filter((ruleId): ruleId is string => Boolean(ruleId)),
-    ),
+  await bumpVehicleOdometer(supabase, vehicleId, odometer)
+
+  const affectedRules = [
+    ...(previousItems ?? []).map((item) => item.rule_id ?? ''),
+    ...items.map((item) => item.ruleId ?? ''),
   ]
+  await syncRuleLastService(supabase, vehicleId, affectedRules)
 
-  if (ruleIds.length > 0) {
-    await supabase
-      .from('maintenance_rules')
-      .update({ last_service_odometer: odometer, last_service_date: serviceDate })
-      .in('id', ruleIds)
-      .eq('vehicle_id', vehicleId)
-  }
-
-  revalidatePath(`/vehicles/${vehicleId}`)
-  revalidatePath('/')
+  revalidateMaintenance(vehicleId)
   return { ok: true, data: log }
+}
+
+export async function deleteMaintenanceLog(
+  logId: string,
+  vehicleId: string,
+): Promise<ActionResult> {
+  if (!logId || !vehicleId) return { ok: false, error: 'Data servis tidak valid' }
+
+  const supabase = createServerClient()
+  const { data: existing, error: fetchError } = await supabase
+    .from('maintenance_logs')
+    .select('receipt_image_url')
+    .eq('id', logId)
+    .eq('vehicle_id', vehicleId)
+    .maybeSingle()
+
+  if (fetchError) return { ok: false, error: fetchError.message }
+  if (!existing) return { ok: false, error: 'Catatan servis tidak ditemukan' }
+
+  const { data: items } = await supabase
+    .from('maintenance_log_items')
+    .select('rule_id')
+    .eq('log_id', logId)
+
+  const { error: itemsError } = await supabase
+    .from('maintenance_log_items')
+    .delete()
+    .eq('log_id', logId)
+
+  if (itemsError) return { ok: false, error: itemsError.message }
+
+  const { error } = await supabase
+    .from('maintenance_logs')
+    .delete()
+    .eq('id', logId)
+    .eq('vehicle_id', vehicleId)
+
+  if (error) return { ok: false, error: error.message }
+
+  const path = receiptPath(existing.receipt_image_url)
+  if (path) await supabase.storage.from(RECEIPT_BUCKET).remove([path])
+
+  await syncRuleLastService(
+    supabase,
+    vehicleId,
+    (items ?? []).map((item) => item.rule_id ?? ''),
+  )
+
+  revalidateMaintenance(vehicleId)
+  return { ok: true, data: undefined }
 }

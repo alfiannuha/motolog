@@ -1,16 +1,24 @@
 'use client'
 
-import { Fuel, Loader2, MapPin } from 'lucide-react'
+import { Fuel, Loader2, MapPin, Pencil } from 'lucide-react'
 import { useRef, useState, useTransition } from 'react'
 
-import { createFuelLog } from '@/actions/fuel'
+import { createFuelLog, deleteFuelLog, updateFuelLog } from '@/actions/fuel'
 import { fetchFuelPrices } from '@/actions/fuel-price'
+import { ConfirmDeleteButton } from '@/components/confirm-delete-button'
 import type { FuelPrice } from '@/lib/fuel-price'
+import type { FuelLog } from '@/types'
 
 const fieldClass =
   'w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm outline-none focus:border-black dark:border-white/15 dark:focus:border-white'
 
-const FUEL_TYPES = [
+const dialogClass =
+  'm-auto max-h-[92vh] w-[min(94vw,480px)] overflow-y-auto rounded-2xl border border-black/10 bg-white p-5 backdrop:bg-black/40 dark:border-white/10 dark:bg-zinc-900'
+
+const buttonClass =
+  'flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black'
+
+export const FUEL_TYPES = [
   'Pertalite',
   'Pertamax',
   'Pertamax Turbo',
@@ -56,6 +64,75 @@ function todayInputValue(): string {
   return new Date(now.getTime() - offset).toISOString().slice(0, 10)
 }
 
+function litersFrom(total: string, price: string): string {
+  const amount = Number(total.replace(',', '.')) / Number(price.replace(',', '.'))
+  return Number.isFinite(amount) && amount > 0 ? amount.toFixed(2) : ''
+}
+
+function FuelFields({
+  price,
+  total,
+  onPrice,
+  onTotal,
+}: {
+  price: string
+  total: string
+  onPrice: (value: string) => void
+  onTotal: (value: string) => void
+}) {
+  const liters = litersFrom(total, price)
+
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-3">
+        <label className="grid gap-1 text-sm">
+          Harga / liter
+          <input
+            name="pricePerLiter"
+            type="number"
+            inputMode="numeric"
+            min={0}
+            required
+            value={price}
+            onChange={(event) => onPrice(event.target.value)}
+            placeholder="10000"
+            className={fieldClass}
+          />
+        </label>
+        <label className="grid gap-1 text-sm">
+          Total bayar
+          <input
+            name="totalCost"
+            type="number"
+            inputMode="numeric"
+            min={0}
+            required
+            value={total}
+            onChange={(event) => onTotal(event.target.value)}
+            placeholder="35000"
+            className={fieldClass}
+          />
+        </label>
+      </div>
+
+      <label className="grid gap-1 text-sm">
+        Jumlah (liter)
+        <input
+          type="text"
+          readOnly
+          tabIndex={-1}
+          value={liters}
+          placeholder="Otomatis dari total ÷ harga"
+          className={`${fieldClass} cursor-not-allowed opacity-60`}
+        />
+        <span className="text-xs text-zinc-500">
+          {liters ? `${liters} L` : 'Terisi otomatis dari total bayar ÷ harga per liter'}
+        </span>
+      </label>
+    </>
+  )
+}
+
 export function LogFuelButton({
   vehicleId,
   currentOdometer,
@@ -78,11 +155,6 @@ export function LogFuelButton({
 
   const fuelTypeRef = useRef(fuelType)
   const requestRef = useRef(0)
-
-  const liters = (() => {
-    const amount = Number(total.replace(',', '.')) / Number(price.replace(',', '.'))
-    return Number.isFinite(amount) && amount > 0 ? amount.toFixed(2) : ''
-  })()
 
   function priceFor(type: string, prices: FuelPrice[] = livePrices): number | null {
     const code = PRODUCT_CODE[type]
@@ -144,11 +216,8 @@ export function LogFuelButton({
 
     startTransition(async () => {
       const result = await createFuelLog(vehicleId, formData)
-      if (result.ok) {
-        dialogRef.current?.close()
-      } else {
-        setError(result.error)
-      }
+      if (result.ok) dialogRef.current?.close()
+      else setError(result.error)
     })
   }
 
@@ -163,10 +232,7 @@ export function LogFuelButton({
         Catat Isi BBM
       </button>
 
-      <dialog
-        ref={dialogRef}
-        className="m-auto max-h-[92vh] w-[min(94vw,480px)] overflow-y-auto rounded-2xl border border-black/10 bg-white p-5 backdrop:bg-black/40 dark:border-white/10 dark:bg-zinc-900"
-      >
+      <dialog ref={dialogRef} className={dialogClass}>
         <h2 className="text-lg font-semibold">Catat Isi BBM</h2>
 
         <form ref={formRef} onSubmit={submit} className="mt-4 grid gap-4">
@@ -221,54 +287,7 @@ export function LogFuelButton({
             </span>
           </label>
 
-          <div className="grid grid-cols-2 gap-3">
-            <label className="grid gap-1 text-sm">
-              Harga / liter
-              <input
-                name="pricePerLiter"
-                type="number"
-                inputMode="numeric"
-                min={0}
-                required
-                value={price}
-                onChange={(event) => setPrice(event.target.value)}
-                placeholder="10000"
-                className={fieldClass}
-              />
-            </label>
-            <label className="grid gap-1 text-sm">
-              Total bayar
-              <input
-                name="totalCost"
-                type="number"
-                inputMode="numeric"
-                min={0}
-                required
-                value={total}
-                onChange={(event) => setTotal(event.target.value)}
-                placeholder="35000"
-                className={fieldClass}
-              />
-            </label>
-          </div>
-
-          <label className="grid gap-1 text-sm">
-            Jumlah (liter)
-            <input
-              name="liters"
-              type="text"
-              readOnly
-              tabIndex={-1}
-              value={liters}
-              placeholder="Otomatis dari total ÷ harga"
-              className={`${fieldClass} cursor-not-allowed opacity-60`}
-            />
-            <span className="text-xs text-zinc-500">
-              {liters
-                ? `${liters} L`
-                : 'Terisi otomatis dari total bayar ÷ harga per liter'}
-            </span>
-          </label>
+          <FuelFields price={price} total={total} onPrice={setPrice} onTotal={setTotal} />
 
           <label className="flex items-center gap-2 text-sm">
             <input
@@ -296,11 +315,7 @@ export function LogFuelButton({
             >
               Batal
             </button>
-            <button
-              type="submit"
-              disabled={pending}
-              className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
-            >
+            <button type="submit" disabled={pending} className={buttonClass}>
               {pending ? <Loader2 className="size-4 animate-spin" /> : null}
               Simpan
             </button>
@@ -308,5 +323,151 @@ export function LogFuelButton({
         </form>
       </dialog>
     </>
+  )
+}
+
+export function FuelRowActions({
+  vehicleId,
+  log,
+}: {
+  vehicleId: string
+  log: FuelLog
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null)
+  const formRef = useRef<HTMLFormElement>(null)
+  const [price, setPrice] = useState(() => String(log.price_per_liter))
+  const [total, setTotal] = useState(() => String(log.total_cost))
+  const [error, setError] = useState<string | null>(null)
+  const [pending, startTransition] = useTransition()
+
+  function openEdit() {
+    setPrice(String(log.price_per_liter))
+    setTotal(String(log.total_cost))
+    setError(null)
+    // The dialog stays mounted, so uncontrolled inputs keep whatever was typed
+    // last time. reset() reverts them to the current log values.
+    formRef.current?.reset()
+    dialogRef.current?.showModal()
+  }
+
+  function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const formData = new FormData(event.currentTarget)
+
+    startTransition(async () => {
+      const result = await updateFuelLog(log.id, vehicleId, formData)
+      if (result.ok) dialogRef.current?.close()
+      else setError(result.error)
+    })
+  }
+
+  return (
+    <div className="flex shrink-0 gap-1">
+      <button
+        type="button"
+        onClick={openEdit}
+        aria-label="Edit catatan BBM"
+        title="Edit"
+        className="rounded-lg border border-black/10 p-1.5 text-zinc-500 hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/5"
+      >
+        <Pencil className="size-3.5" />
+      </button>
+
+      <ConfirmDeleteButton
+        title="Hapus catatan BBM ini?"
+        description={`Catatan ${log.liters} L tanggal ${log.log_date} akan dihapus permanen.`}
+        onConfirm={() => deleteFuelLog(log.id, vehicleId)}
+      />
+
+      <dialog
+        ref={dialogRef}
+        onClose={() => setError(null)}
+        className={dialogClass}
+      >
+        <h2 className="text-lg font-semibold">Edit Isi BBM</h2>
+
+        <form ref={formRef} onSubmit={submit} className="mt-4 grid gap-4">
+          <div className="grid grid-cols-2 gap-3">
+            <label className="grid gap-1 text-sm">
+              Tanggal
+              <input
+                name="logDate"
+                type="date"
+                required
+                defaultValue={log.log_date}
+                className={fieldClass}
+              />
+            </label>
+            <label className="grid gap-1 text-sm">
+              Odometer (km)
+              <input
+                name="odometer"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                required
+                defaultValue={log.odometer}
+                className={fieldClass}
+              />
+            </label>
+          </div>
+
+          <label className="grid gap-1 text-sm">
+            Jenis BBM
+            <select
+              name="fuelType"
+              defaultValue={log.fuel_type ?? 'Pertalite'}
+              className={fieldClass}
+            >
+              {FUEL_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <FuelFields price={price} total={total} onPrice={setPrice} onTotal={setTotal} />
+
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              name="isFullTank"
+              type="checkbox"
+              defaultChecked={log.is_full_tank}
+              value="true"
+              className="size-4"
+            />
+            Tangki penuh (dibutuhkan untuk hitung KM/L)
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            Catatan (opsional)
+            <textarea
+              name="notes"
+              rows={2}
+              maxLength={2000}
+              defaultValue={log.notes ?? ''}
+              className={fieldClass}
+            />
+          </label>
+
+          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => dialogRef.current?.close()}
+              className="rounded-lg px-4 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/5"
+            >
+              Batal
+            </button>
+            <button type="submit" disabled={pending} className={buttonClass}>
+              {pending ? <Loader2 className="size-4 animate-spin" /> : null}
+              Simpan
+            </button>
+          </div>
+        </form>
+      </dialog>
+    </div>
   )
 }

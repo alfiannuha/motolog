@@ -48,6 +48,34 @@ export async function getFuelLogs(vehicleId: string): Promise<FuelLog[]> {
   return data
 }
 
+function revalidateFuel(vehicleId: string) {
+  revalidatePath('/')
+  revalidatePath(`/vehicles/${vehicleId}`)
+  revalidatePath(`/vehicles/${vehicleId}/fuel`)
+  revalidatePath(`/vehicles/${vehicleId}/analytics`)
+}
+
+// current_odometer is a high-water mark: it only ever moves up, so editing or
+// deleting an old record never silently drags the vehicle's mileage back.
+async function bumpVehicleOdometer(
+  supabase: ReturnType<typeof createServerClient>,
+  vehicleId: string,
+  odometer: number,
+) {
+  const { data: vehicle } = await supabase
+    .from('vehicles')
+    .select('current_odometer')
+    .eq('id', vehicleId)
+    .maybeSingle()
+
+  if (vehicle && odometer > vehicle.current_odometer) {
+    await supabase
+      .from('vehicles')
+      .update({ current_odometer: odometer, updated_at: new Date().toISOString() })
+      .eq('id', vehicleId)
+  }
+}
+
 export async function createFuelLog(
   vehicleId: string,
   payload: FormData,
@@ -108,15 +136,67 @@ export async function createFuelLog(
 
   if (error) return { ok: false, error: error.message }
 
-  if (odometer > vehicleResult.data.current_odometer) {
-    await supabase
-      .from('vehicles')
-      .update({ current_odometer: odometer, updated_at: new Date().toISOString() })
-      .eq('id', vehicleId)
-  }
+  await bumpVehicleOdometer(supabase, vehicleId, odometer)
 
-  revalidatePath('/')
-  revalidatePath(`/vehicles/${vehicleId}`)
-  revalidatePath(`/vehicles/${vehicleId}/fuel`)
+  revalidateFuel(vehicleId)
   return { ok: true, data: log }
+}
+
+export async function updateFuelLog(
+  logId: string,
+  vehicleId: string,
+  payload: FormData,
+): Promise<ActionResult<FuelLog>> {
+  if (!logId || !vehicleId) return { ok: false, error: 'Data BBM tidak valid' }
+
+  const parsed = fuelLogSchema.safeParse(Object.fromEntries(payload))
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message }
+
+  const { logDate, odometer, pricePerLiter, totalCost, fuelType, notes } = parsed.data
+  const isFullTank = toBool(payload.get('isFullTank'))
+  const liters = Math.round((totalCost / pricePerLiter) * 100) / 100
+
+  const supabase = createServerClient()
+  const { data, error } = await supabase
+    .from('fuel_logs')
+    .update({
+      log_date: logDate,
+      odometer,
+      liters,
+      price_per_liter: pricePerLiter,
+      total_cost: totalCost,
+      is_full_tank: isFullTank,
+      fuel_type: fuelType,
+      notes,
+    })
+    .eq('id', logId)
+    .eq('vehicle_id', vehicleId)
+    .select()
+    .single()
+
+  if (error) return { ok: false, error: error.message }
+
+  await bumpVehicleOdometer(supabase, vehicleId, odometer)
+
+  revalidateFuel(vehicleId)
+  return { ok: true, data }
+}
+
+export async function deleteFuelLog(
+  logId: string,
+  vehicleId: string,
+): Promise<ActionResult> {
+  if (!logId || !vehicleId) return { ok: false, error: 'Data BBM tidak valid' }
+
+  const supabase = createServerClient()
+  const { error } = await supabase
+    .from('fuel_logs')
+    .delete()
+    .eq('id', logId)
+    .eq('vehicle_id', vehicleId)
+
+  if (error) return { ok: false, error: error.message }
+
+  revalidateFuel(vehicleId)
+  return { ok: true, data: undefined }
 }

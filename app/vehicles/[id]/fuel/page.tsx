@@ -38,7 +38,7 @@ export default async function VehicleFuelPage({
 
       <VehicleTabs vehicleId={vehicle.id} active="fuel" />
 
-      <FuelPanel logs={logs} />
+      <FuelPanel vehicleId={vehicle.id} logs={logs} />
     </main>
   )
 }
